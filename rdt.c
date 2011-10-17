@@ -7,8 +7,22 @@ char *itoa(int num) {
         return str;
 }
 
+//getRecvIndex takes struct server s argument and returns the index of this rece
+//in the receiver array
+//needs numServers to be correct for proper functioning
 int getRecvIndex (struct server s) {
-	return 1;
+	int x=0;
+	while((x<numServers)) {
+	    if (!(strcmp((receiver+x)->ip,s.ip))&&((receiver+x)->port==s.port)){
+	        return x;		
+	    } 
+	    else {
+		x=x+1;
+		
+	    }
+	}
+	printf("\nNo match in the ip array\n");
+	return -1;
 }
 //initReceivers should be called before initWindow , since numServers is set there only.
 int initWindow(int size,int segSize) {
