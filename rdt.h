@@ -15,6 +15,10 @@
 #include <time.h>
 #include <sys/time.h>
 
+int restartTimer;
+int runTimer;
+
+
 struct winElement {
 	int seqNo;
 	int *Ack;
@@ -35,7 +39,7 @@ struct token{
 	char chkSum[2];
 };
 
-int rdtSend(File *fp);
+int rdtSend(FILE *fp);
 int initWindow();
 int initReceivers();
 char* framePacket(char *data,int seqNo);
@@ -50,8 +54,14 @@ int chkMinOfHighSeqAcked();
 int checkChkSum(char* data, char* chkSum);
 int fillBuffer(char* pkt);
 char* getData(char* pkt);
-int writeToFile(File* fp, char* data);
+int writeToFile(FILE *fp, char* data);
+void endTimer();
+void resetTimer();
 
+void timeout(int ticks);
+void startTimer();
+void *timer();
+ 
 
 
 

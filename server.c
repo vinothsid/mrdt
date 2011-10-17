@@ -1,5 +1,5 @@
-#include "rdh.h"
+//#include "rdh.h"
 
-int main(char *argv[],int argv) {
+int main(char *argv[],int argc) {
 
 }
