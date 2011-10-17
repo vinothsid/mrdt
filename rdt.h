@@ -22,22 +22,23 @@ struct winElement {
 } *window;
 
 struct server {
-	char *ip;
+	char ip[32];
 	int port;
 	int highSeqAcked;
 } *receiver;
 
 int head, tail, inTransit;
 int winSize, mss;
+int numServers;
 
 struct token{
 	int seqNo;
 	char chkSum[2];
 };
 
-int rdtSend(File *fp);
+int rdtSend(FILE *fp);
 int initWindow();
-int initReceivers();
+int initReceivers(char **receivers,int numReceivers);
 char* framePacket(char *data,int seqNo);
 char* computeChkSum(char* data);
 int udpSendAll(int indexWindow);
@@ -50,8 +51,9 @@ int chkMinOfHighSeqAcked();
 int checkChkSum(char* data, char* chkSum);
 int fillBuffer(char* pkt);
 char* getData(char* pkt);
-int writeToFile(File* fp, char* data);
-
+int writeToFile(FILE* fp, char* data);
+int printWindowInfo();
+int printReceiverList();
 
 
 
