@@ -7,7 +7,7 @@ char *itoa(int num) {
         return str;
 }
 
-//getRecvIndex takes struct server s argument and returns the index of this rece
+//getRecvIndex takes struct server s argument and returns the index of this receiver
 //in the receiver array
 //needs numServers to be correct for proper functioning
 int getRecvIndex (struct server s) {
