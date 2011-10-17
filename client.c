@@ -12,6 +12,6 @@ int main(int argc,char *argv[]) {
 	initWindow(size,mss);
 	printWindowInfo();
 	printReceiverList();
-
+	
 
 }

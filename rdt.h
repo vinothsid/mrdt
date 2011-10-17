@@ -48,7 +48,7 @@ char* framePacket(char *data,int seqNo);
 char* computeChkSum(char* data);
 int udpSendAll(int indexWindow);
 int udpSend(int indexWindow, int indexRcvr);
-int getRecvIndex(struct sockaddr_storage addr);
+int getRecvIndex(struct server addr);
 int timeoutHandler();
 struct sockaddr_storage udp_rcv();
 struct token tokenize(char* Pkt);
