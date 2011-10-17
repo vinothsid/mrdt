@@ -1,5 +1,5 @@
 #include "rdt.h"
-
+ 
 char *itoa(int num) {
         char *str;
         str = (char *)malloc(5);
@@ -91,11 +91,13 @@ int printReceiverList() {
 
 /************************Timer Functions*************************/
 
+
 void endTimer(){
 	runTimer=0;
 }
 
 void resetTimer(){
+	printf("Entered rst\n");
 	restartTimer=1;
 }
 
@@ -110,6 +112,8 @@ void timeout(int ticks)
 	endwait = clock() + ticks ;
 	while(clock()< endwait){
 	if(restartTimer==1){
+	printf("Entered timeout rst\n");
+	printf("Timer restarted\n");
 	break;
 	}
 	}
@@ -125,27 +129,28 @@ void startTimer(){
 
 void *timer()
 {
-	int i;
-	i=0;
+	int n;
+	n=0;
 	
 	restartTimer=0;
 	while(1){
-	while(runTimer==1)
-	{
+		while(runTimer==1)
+		{
 
-		printf("Timer Started for %d consecutive time\n",i);
-		i++;
-		timeout(500000);
+			printf("Timer Started for %d consecutive time\n",n);
+			n++;
+			timeout(500);
 		
 
-		if(restartTimer==0&&runTimer==1){
-			timeoutHandler();
+			if(restartTimer==0&&runTimer==1){
+				timeoutHandler();
+			}
+	
 		}
-
-	}
 	}
 	
 }
+
 
 /*************************************************/
 /*===============================udpSend==========================*/
