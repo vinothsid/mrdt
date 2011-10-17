@@ -14,6 +14,11 @@
 #include <pthread.h>
 #include <time.h>
 #include <sys/time.h>
+#include <assert.h>
+
+int restartTimer;
+int runTimer;
+
 
 struct winElement {
 	int seqNo;
@@ -37,7 +42,7 @@ struct token{
 };
 
 int rdtSend(FILE *fp);
-int initWindow();
+int initWindow(int size,int segSize);
 int initReceivers(char **receivers,int numReceivers);
 char* framePacket(char *data,int seqNo);
 char* computeChkSum(char* data);
@@ -54,6 +59,14 @@ char* getData(char* pkt);
 int writeToFile(FILE* fp, char* data);
 int printWindowInfo();
 int printReceiverList();
+int writeToFile(FILE *fp, char* data);
+void endTimer();
+void resetTimer();
+
+void timeout(int ticks);
+void startTimer();
+void *timer();
+ 
 
 
 

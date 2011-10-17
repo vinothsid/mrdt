@@ -1,10 +1,17 @@
 #include "rdt.h"
 
-int main(char *argv[],int argc) {
-	int nReceivers;
-	nReceivers = argc/2 -2;
+
+int main(int argc,char *argv[]) {
+
+	int nReceivers,size,mss;
+
+	nReceivers = (argc -3 )/2;
 	initReceivers(argv,nReceivers);
-	initWindow();
+	size = atoi( argv[argc-2] );	
+	mss = atoi( argv[ argc-1 ] );	
+	initWindow(size,mss);
 	printWindowInfo();
 	printReceiverList();
+
+
 }
