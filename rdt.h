@@ -27,7 +27,7 @@ struct winElement {
 } *window;
 
 struct server {
-	char ip[32];
+	char ip[46];
 	int port;
 	int highSeqAcked;
 } *receiver;
@@ -48,6 +48,7 @@ char* framePacket(char *data,int seqNo);
 char* computeChkSum(char* data);
 int udpSendAll(int indexWindow);
 int udpSend(int indexWindow, int indexRcvr);
+int udpRcv(char* rcvBuf, int port);
 int getRecvIndex(struct server addr);
 int timeoutHandler();
 struct sockaddr_storage udp_rcv();
@@ -62,6 +63,11 @@ int printReceiverList();
 int writeToFile(FILE *fp, char* data);
 void endTimer();
 void resetTimer();
+
+//some auxilary functions
+int get_in_port(struct sockaddr *sa);
+void *get_in_addr(struct sockaddr *sa);
+char *itoa(int num);
 
 void timeout(int ticks);
 void startTimer();
