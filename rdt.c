@@ -38,7 +38,6 @@ int rdpSend(char *fileName){
 	packet = (char *) malloc((sizeof(char))* (mss+8 ));
 
 	while(totalSegments!=0){
-		
 		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
 		//if u get arbid end data at the receiver...I will suggest doing it
 		sizeExtracted = fread(toSend,1,mss,fp);
@@ -47,10 +46,11 @@ int rdpSend(char *fileName){
 		printf("%s\t",toSend);
 		if(sequenceNumber!=0){
 		sequenceNumber++;
-		}	
+		}
+		inTransit++;	
 		framePacket(toSend,sequenceNumber,packet);
 		
-		inTransit++;
+		
 		while(inTransit==winSize){ }
 
 		tail= (tail+1) % winSize;
@@ -266,7 +266,7 @@ int udpSendAll(int indexWindow){
 /*===============================udpSend==========================*/
 int udpSend(int indexWindow,int indexRcvr)
 {
-    assert(*(window+indexWindow)->data!='\0');
+    //assert(*(window+indexWindow)->data!='\0');
     
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
