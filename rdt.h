@@ -15,6 +15,11 @@
 #include <time.h>
 #include <sys/time.h>
 #include <assert.h>
+#include<stdint.h>
+#include<inttypes.h>
+#include<math.h>
+#define u_short uint16_t
+#define u_long uint32_t
 
 int restartTimer;
 int runTimer;
@@ -35,32 +40,31 @@ struct server {
 int head, tail, inTransit;
 int winSize, mss;
 int numServers;
+int nextExpectedSeqNo;
+
 
 struct token{
-	int seqNo;
-	char chkSum[2];
+	uint32_t seqNo;
+	uint16_t chkSum;
 };
 
 int rdtSend(FILE *fp);
 int initWindow(int size,int segSize);
 int initReceivers(char **receivers,int numReceivers);
-char* framePacket(char *data,int seqNo);
-char* computeChkSum(char* data);
+int framePacket(char *data,uint32_t seqNo,char *pkt);
 int udpSendAll(int indexWindow);
 int udpSend(int indexWindow, int indexRcvr);
 int udpRcv(char* rcvBuf, int port);
 int getRecvIndex(struct server addr);
 int timeoutHandler();
 struct sockaddr_storage udp_rcv();
-struct token tokenize(char* Pkt);
+struct token tokenize(char* pkt);
 int chkMinOfHighSeqAcked();
-int checkChkSum(char* data, char* chkSum);
 int fillBuffer(char* pkt);
 char* getData(char* pkt);
 int writeToFile(FILE* fp, char* data);
 int printWindowInfo();
 int printReceiverList();
-int writeToFile(FILE *fp, char* data);
 void endTimer();
 void resetTimer();
 
@@ -72,7 +76,8 @@ char *itoa(int num);
 void timeout(int ticks);
 void startTimer();
 void *timer();
- 
+u_short computeChkSum (u_short *buf);
+int checkChkSum(u_short *buf,u_short checksum); 
 
 
 

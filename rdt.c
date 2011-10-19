@@ -290,4 +290,111 @@ int udpRcv(char* rcvBuf,int port)
     return getRecvIndex(source);
 }
 
+void packi16(unsigned char *buf, uint16_t i)
+{
+    *buf++ = i>>8; *buf++ = i;
+}
+
+/*
+** packi32() -- store a 32-bit int into a char buffer (like htonl())
+*/ 
+void packi32(unsigned char *buf, uint32_t i)
+{
+    *buf++ = i>>24; *buf++ = i>>16;
+    *buf++ = i>>8;  *buf++ = i;
+}
+
+/*
+** unpacki16() -- unpack a 16-bit int from a char buffer (like ntohs())
+*/ 
+unsigned int unpacki16(unsigned char *buf)
+{
+    return (buf[0]<<8) | buf[1];
+}
+
+/*
+** unpacki32() -- unpack a 32-bit int from a char buffer (like ntohl())
+*/ 
+unsigned long unpacki32(unsigned char *buf)
+{
+    return (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];
+}
+
+int framePacket(char *data,uint32_t seqNo,char *pkt) {
+
+//First 32 bits are sequence number
+	packi32(pkt,seqNo);
+
+	uint16_t checkSum= computeChkSum(data);
+
+	packi16(pkt+4,checkSum);
+	uint16_t dataFlag = 21845; //0101010101010101
+	packi16(pkt+6,dataFlag);
+
+
+	memcpy(pkt+8,data,strlen(data) );
+	return 0;
+}
+
+struct token tokenize(char *pkt) {
+	struct token t;
+	t.seqNo = unpacki32(pkt);
+	t.chkSum = unpacki16(pkt+4);
+	return t; 
+
+}
+
+int checkChkSum(u_short *buf,u_short checksum)
+{
+        register u_long sum = 0;
+
+        int count = ceil(strlen(buf)/2.0 ) ;
+        while (count--)
+        {
+                sum += *buf++;
+                //printf("\nthis time sum was %x\n",sum);
+                if (sum & 0xFFFF0000)
+                {
+
+                        /* carry occurred, so wrap around */
+                        sum &= 0xFFFF;
+                        sum++;
+                }
+        }
+	sum +=checksum;
+   	if(sum & 0xFFFF0000)
+                {
+
+                        /* carry occurred, so wrap around */
+                        sum &= 0xFFFF;
+                        sum++;
+                }
+
+	 if((short int)~sum ==0) 
+		return 1;
+
+	return 0;
+}
+
+u_short computeChkSum(u_short *buf)
+{
+        int count = ceil(strlen(buf)/2.0 ) ;
+        printf("count : %d",count);
+        register u_long sum = 0;
+
+        while (count--)
+        {
+                sum += *buf++;
+                //printf("\nthis time sum was %x\n",sum);
+                if (sum & 0xFFFF0000)
+                {
+                        //printf("I am inside\n");
+                        /* carry occurred, so wrap around */
+                        sum &= 0xFFFF;
+                        sum++;
+                }
+        }
+
+	return ~(sum & 0xFFFF);
+}
 
