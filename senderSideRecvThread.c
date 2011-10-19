@@ -62,7 +62,7 @@ recvThread() {
    int HU, HU_M;
    HU=minAcked(receiver);
    HU_M=HU%winSize;
-   if (HU_M!=head) {
+   if ((HU_M!=-1)&&(HU_M!=head)) {
        head=HU_M;
        //put start_timer() code here
    }
