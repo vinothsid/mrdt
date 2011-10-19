@@ -18,17 +18,18 @@
 #include <assert.h>
 #include <stdint.h>
 #include <inttypes.h>
-//#include <math.h>
 #define u_short uint16_t
 #define u_long uint32_t
 
 int restartTimer;
 int runTimer;
-
+int segmentNumber;
+int totalSegments;
+uint32_t sequenceNumber;
 
 struct winElement {
 	int seqNo;
-	int *Ack;
+	int *Ack; // pointer because it has to carry a count of ack's from each of the receivers. SHOULD WE NOT MALLOC IT FOR 'R' RCVRS ?
 	char *data;
 } *window;
 
@@ -49,7 +50,7 @@ struct token{
 	uint16_t chkSum;
 };
 
-int rdtSend(FILE *fp);
+int rdpSend(char *fileName);
 int initWindow(int size,int segSize);
 int initReceivers(char **receivers,int numReceivers);
 int framePacket(char *data,uint32_t seqNo,char *pkt);

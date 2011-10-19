@@ -4,6 +4,91 @@ int ceil(float x) {
     
 }
 
+
+
+
+/******************************RDP SEND**************************************/
+
+int rdpSend(char *fileName){
+
+	FILE *fp;
+	fp = fopen(fileName,"r");
+	if(fp==NULL){fputs("File error",stderr);exit(1);}
+		
+	long length;
+	char *toSend; 
+	size_t sizeExtracted; 
+	char *packet;
+	
+	fseek(fp,0,SEEK_END);
+	
+	length=ftell(fp);
+	printf("file size in int is %d",length);
+	rewind(fp);
+	
+	if(length%mss==0){
+	totalSegments = length/mss;
+	}else{
+	totalSegments = (length -(length%mss))/mss;
+	totalSegments++;
+	}
+	
+	inTransit=0;
+	sequenceNumber = 0;
+	(window+winSize-1)->seqNo = 0;
+
+	toSend = (char *) malloc((sizeof(char))* mss );
+
+	packet = (char *) malloc((sizeof(char))* (mss+8 ));
+
+	while(totalSegments!=0){
+		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
+		//if u get arbid end data at the receiver...I will suggest doing it
+		sizeExtracted = fread(toSend,1,mss,fp);
+		if(sizeExtracted ==0 ){printf("either not working or finshed\n");break;}
+		printf("%d\t",sizeExtracted);
+		printf("%s\t",toSend);
+		if(sequenceNumber!=0){
+		sequenceNumber++;
+		}
+		inTransit++;	
+		framePacket(toSend,sequenceNumber,packet);
+		
+		
+		while(inTransit==winSize){ }
+
+		tail= (tail+1) % winSize;
+		
+		(window+tail)->data=packet;
+
+		if(tail==0){
+			
+			(window+tail)->seqNo=(window+winSize-1)->seqNo + 1;
+		}else{
+			(window+tail)->seqNo=((window+((tail-1)%winSize))->seqNo )+1;
+			}
+		if(udpSendAll(tail)!=1)
+			printf("Some error while sending to all\n");		 
+		// PART pending......
+		// Will resume after udpSendAll
+		
+		startTimer(); //timer has to be restarted...has to be done
+		printf("Timer Started\n");
+	
+		totalSegments--;
+	}
+
+	fclose(fp);
+	return 1;
+
+}
+
+
+
+
+
+/***************************************************** I to A********************************/
+>>>>>>> 9cff05030508a8e3c62482ffdebf23928dcb2728
 char *itoa(int num) {
         char *str;
         str = (char *)malloc(5);
@@ -28,6 +113,9 @@ int getRecvIndex (struct server s) {
 	printf("\nNo match in the ip array\n");
 	return -1;
 }
+
+/****************************INIT WINDOW*********************************************/
+
 //initReceivers should be called before initWindow , since numServers is set there only.
 int initWindow(int size,int segSize) {
 	int i=0,j=0;
@@ -38,18 +126,21 @@ int initWindow(int size,int segSize) {
 		(window + i)->Ack = (int *)malloc(sizeof(int) * numServers);
 		//assert((window + i)->Ack);
 		// data size = mss + 8 bytes of header + 1 for storing \0
-		(window + i)->data = (char *)malloc(sizeof(char) * (mss + 9));
+		(window + i)->data = (char *)malloc(sizeof(char) * (mss + 9));  // WHY MSS  '+9'  ????
 		//assert((window + i)->data);
-		strcpy((window + i)->data , "");
-		(window + i)->seqNo = -1;
+		strcpy((window + i)->data , ""); // WHY START WITH EMPTY DATA ????
+		(window + i)->seqNo = -1;  
 		for( j=0;j<numServers;j++) {
 			(window + i)->Ack[j] = 0;
 		}
 		
 	}
+	head=0;  // I have added this as intial condition
+	tail=-1;  // I have added this as intial condition
 	return 1;
 }
 
+/*********************************INIT RECEIVERS**********************************/
 
 int initReceivers(char **receivers,int numReceivers) {
 	numServers = numReceivers;
@@ -67,6 +158,8 @@ int initReceivers(char **receivers,int numReceivers) {
 	return 1;
 }
 
+/************************Print window*********************************************/
+
 int printWindowInfo() {
 	int i;
 	printf("Total Window Size : %d\n",winSize);
@@ -76,12 +169,14 @@ int printWindowInfo() {
 		if( *((window + i )->data) == '\0' )
 			printf("0;");
 		else
-			printf("1");
+			printf("1");  // CAN WE PRINT DATA ?? can it happen that the window ele that we are printing here might be wiped off b4 ?
 	}
 	printf("\n");
 	return 1;
 
 }
+
+/**************************Print Receiver List***************************/
 
 int printReceiverList() {
 	int i;
@@ -128,6 +223,8 @@ void timeout(int ticks)
 
 void startTimer(){
 	runTimer=1;
+	printf("Started TIMER again\n");
+	resetTimer();	
 
 }
 
@@ -157,10 +254,24 @@ void *timer()
 
 
 /*************************************************/
+/**************UDP SEND ALL**************************/
+int udpSendAll(int indexWindow){
+	int i;
+	int check;
+	for(i=0;i<numServers;i++){
+		check = udpSend(indexWindow,i);
+		if(check!=1){
+		printf("\nUnable to send packet %d to receiver%d\n",indexWindow,i);
+		}
+	}
+	return 1;
+}
+
+/***************************************************/
 /*===============================udpSend==========================*/
 int udpSend(int indexWindow,int indexRcvr)
 {
-    assert(*(window+indexWindow)->data!='\0');
+    //assert(*(window+indexWindow)->data!='\0');
     
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
@@ -203,7 +314,7 @@ int udpSend(int indexWindow,int indexRcvr)
     	printf("sent %d bytes to %s\n", numbytes,(receiver+indexRcvr)->ip);
     //}
     close(sockfd);
-    return 0;
+    return 1;
 }
 
 /*================================udpRcv==================================*/
@@ -294,6 +405,8 @@ int udpRcv(char* rcvBuf,int port)
     return getRecvIndex(source);
 }
 
+/**************************************************************************************/
+
 void packi16(unsigned char *buf, uint16_t i)
 {
     *buf++ = i>>8; *buf++ = i;
@@ -324,6 +437,8 @@ unsigned long unpacki32(unsigned char *buf)
     return (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];
 }
 
+/******************************FRAME PACKET****************************************/
+
 int framePacket(char *data,uint32_t seqNo,char *pkt) {
 
 //First 32 bits are sequence number
@@ -340,6 +455,8 @@ int framePacket(char *data,uint32_t seqNo,char *pkt) {
 	return 0;
 }
 
+/****************************TOKENIZE********************************/
+
 struct token tokenize(char *pkt) {
 	struct token t;
 	t.seqNo = unpacki32(pkt);
@@ -348,11 +465,14 @@ struct token tokenize(char *pkt) {
 
 }
 
+/****************************CHECK SUM***********************************/
+
 int checkChkSum(u_short *buf,u_short checksum)
 {
         register u_long sum = 0;
 
-        int count = ceil(strlen(buf)/2.0 ) ;
+        int count;
+ 	count = ceil(strlen(buf)/2.0 ) ;
         while (count--)
         {
                 sum += *buf++;
@@ -380,9 +500,12 @@ int checkChkSum(u_short *buf,u_short checksum)
 	return 0;
 }
 
+/***************************COMPUTE CHECK SUM************************************/
+
 u_short computeChkSum(u_short *buf)
 {
-        int count = ceil(strlen(buf)/2.0 ) ;
+        int count;
+	count = ceil(strlen(buf)/2.0 ) ;
         printf("count : %d",count);
         register u_long sum = 0;
 
@@ -401,4 +524,4 @@ u_short computeChkSum(u_short *buf)
 
 	return ~(sum & 0xFFFF);
 }
-
+/*************************************************************************************/
