@@ -1,3 +1,4 @@
+//#include <tgmath.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -15,9 +16,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <assert.h>
-#include<stdint.h>
-#include<inttypes.h>
-#include<math.h>
+#include <stdint.h>
+#include <inttypes.h>
+//#include <math.h>
 #define u_short uint16_t
 #define u_long uint32_t
 

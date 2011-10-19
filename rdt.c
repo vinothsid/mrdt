@@ -1,5 +1,9 @@
 #include "rdt.h"
  
+int ceil(float x) {
+    
+}
+
 char *itoa(int num) {
         char *str;
         str = (char *)malloc(5);
