@@ -56,7 +56,7 @@ int initReceivers(char **receivers,int numReceivers);
 int framePacket(char *data,uint32_t seqNo,char *pkt);
 int udpSendAll(int indexWindow);
 int udpSend(int indexWindow, int indexRcvr);
-int udpRcv(char* rcvBuf, int port);
+struct server udpRcv(char* rcvBuf, int port);
 int getRecvIndex(struct server addr);
 int timeoutHandler();
 struct sockaddr_storage udp_rcv();

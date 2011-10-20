@@ -28,11 +28,12 @@ int minAcked(struct server* receiver) {
 }
 
 recvThread() {
+    int headIncrement=0;
     char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
     int recvIndex;
     //store previous head
-    HP=head;
-    recvIndex=udpRcv(rcvBuf,MYPORT);
+    //HP=head;
+    recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT));
     //get the seqNo of the ack
     struct token t;
     t=tokenize(rcvBuf);
@@ -51,7 +52,7 @@ recvThread() {
         //put fast retransmit conditions and code here
 	if ((window+start)->Ack[recvIndex]>=3) {
 	    int y;
-	    y=(start+1)%winsize;
+	    y=(start+1)%winSize;
             udpSend(y,recvIndex);
 	    
 	} 

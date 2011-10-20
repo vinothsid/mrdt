@@ -334,7 +334,7 @@ int get_in_port(struct sockaddr *sa)
     }
 }
 
-int udpRcv(char* rcvBuf,int port)
+struct server udpRcv(char* rcvBuf,int port)
 {
     struct server source;
     int sockfd;
@@ -353,7 +353,7 @@ int udpRcv(char* rcvBuf,int port)
 
     if ((rv = getaddrinfo(NULL, itoa(port), &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+        exit(1);
     }
 
     // loop through all the results and bind to the first we can
@@ -375,7 +375,7 @@ int udpRcv(char* rcvBuf,int port)
 
     if (p == NULL) {
         fprintf(stderr, "listener: failed to bind socket\n");
-        return 2;
+        //return NULL;
     }
 
     freeaddrinfo(servinfo);
@@ -386,7 +386,8 @@ int udpRcv(char* rcvBuf,int port)
     	if ((numbytes = recvfrom(sockfd, buf, mss+8 , 0,
         	(struct sockaddr *)&their_addr, &addr_len)) == -1) {
         	perror("recvfrom");
-        	exit(1);
+        	//exit(1);
+ 		//return NULL;
     	}
 	int rcvFromPort=ntohs(get_in_port((struct sockaddr*)&their_addr));
 	//setting the values of source to getRcvIndex
@@ -402,7 +403,7 @@ int udpRcv(char* rcvBuf,int port)
 
     close(sockfd);
 
-    return getRecvIndex(source);
+    return source;
 }
 
 /**************************************************************************************/
