@@ -20,6 +20,8 @@
 #include <inttypes.h>
 #define u_short uint16_t
 #define u_long uint32_t
+#define MYPORT 4950
+#define sizeofack 32
 
 int restartTimer;
 int runTimer;
