@@ -50,7 +50,7 @@ int rdpSend(char *fileName){
 		sequenceNumber++;
 		}
 		inTransit++;	
-		framePacket(toSend,sequenceNumber,(window+tail)->data);
+		framePacket(toSend,sequenceNumber,(window+tail)->data,0);
 		
 		while(inTransit==winSize){ }
 
@@ -448,15 +448,27 @@ unsigned long unpacki32(unsigned char *buf)
 
 /******************************FRAME PACKET****************************************/
 
-int framePacket(char *data,uint32_t seqNo,char *pkt) {
+// flag = 0 for data ; flag = 1 for ack
+int framePacket(char *data,uint32_t seqNo,char *pkt,int flag) {
 
 //First 32 bits are sequence number
 	packi32(pkt,seqNo);
 
-	uint16_t checkSum= computeChkSum(data);
 
-	packi16(pkt+4,checkSum);
-	uint16_t dataFlag = 21845; //0101010101010101
+	uint16_t dataFlag ;
+	if(flag == 0 ) {
+
+		uint16_t checkSum= computeChkSum(data);
+
+		packi16(pkt+4,checkSum);
+		dataFlag = 21845; //0101010101010101
+	} else {
+		dataFlag= 43690; //1010101010101010
+		//Setting checksum = 0000000000000000 for ack
+		*(pkt+4)=0;
+		*(pkt+5)=0;	
+	}
+
 	packi16(pkt+6,dataFlag);
 
 
@@ -534,3 +546,185 @@ u_short computeChkSum(u_short *buf)
 	return ~(sum & 0xFFFF);
 }
 /*************************************************************************************/
+
+int rdtRecv( int port  , char *fileName) {
+	int nE = 0,x=0,prev=0;
+	int lastInSequenceNo=-1;
+	int index;
+	window->seqNo = 0;
+	struct winElement *curWindow;
+	char ackPkt[9];
+	receiver = (struct server*)malloc(sizeof(struct winElement));
+	struct server sender;
+	FILE *fp = fopen(fileName,"wa");
+	char *temp = (char *)malloc(sizeof(char)*mss + 9);
+	while(1) {
+		curWindow = window+nE;
+		sender = udpRcv(temp,port);
+		strcpy(receiver->ip,sender.ip);
+		receiver->port = sender.port;
+		struct token t;
+		t = tokenize(curWindow->data);
+		
+		if ( (curWindow->seqNo - winSize ) <= t.seqNo && t.seqNo < curWindow->seqNo) {
+			framePacket("",lastInSequenceNo,ackPkt,1);
+			udpServerSend(ackPkt);
+		} else if (t.seqNo == curWindow->seqNo )	{
+			if ( checkChkSum((curWindow->data)+8,t.chkSum) ) {
+				x = nE;
+				strcpy(curWindow->data,temp );
+				while(*(curWindow->data)!='\0') {
+					fwrite(curWindow->data+8,1,mss,fp);
+					x = (x+1)%winSize;
+					memset(curWindow->data,0,mss+9);
+					lastInSequenceNo = curWindow->seqNo;
+					curWindow = window+x;	
+				}
+				nE = x;
+				
+				curWindow->seqNo = lastInSequenceNo + 1;
+				framePacket("",lastInSequenceNo,ackPkt,1);
+				udpServerSend(ackPkt);
+							
+						
+			} else {
+				memset(curWindow->data,0,mss+9); // if checksum failed ,reset the data and continue the loop
+				continue;
+			}
+			 
+		} else if ( t.seqNo < curWindow->seqNo + winSize  ) {
+			index = t.seqNo%winSize	;
+			strcpy((window + index)->data,temp);
+			(window + index)->seqNo = t.seqNo;
+		}
+
+	}
+
+
+}
+
+int udpServerSend (char *pkt)
+{
+    //assert(*(window+indexWindow)->data!='\0');
+
+    int sockfd;
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    int numbytes;
+    int indexRcvr = 0;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    if ((rv = getaddrinfo((receiver+indexRcvr)->ip, itoa((receiver+indexRcvr)->port), &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
+    }
+
+    // loop through all the results and make a socket
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+          perror("socket");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "failed to bind socket\n");
+        return 2;
+    }
+
+    if ((numbytes = sendto(sockfd, pkt , strlen(pkt), 0,
+             p->ai_addr, p->ai_addrlen)) == -1) {
+        perror("sendto");
+        exit(1);
+    }
+
+    freeaddrinfo(servinfo);
+
+    //if (debug == 1 || log ==1) {
+        printf("sent %d bytes to %s\n", numbytes,(receiver+indexRcvr)->ip);
+    //}
+    close(sockfd);
+    return 1;
+
+}
+int minAcked(struct server* receiver) {
+    int min=receiver->highSeqAcked;
+    printf("(receiver+x)->highSeqAcked: %d", receiver->highSeqAcked);
+    int x=0;
+    while (x<numServers) {
+        if ((receiver+x)->highSeqAcked < min) {
+            min=(receiver+x)->highSeqAcked;
+        }
+        x++;
+    }
+    return min;
+}
+
+recvThread() {
+    while(1) {
+    	int headIncrement=0;
+    	char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
+    	int recvIndex;
+    	//store previous head
+    	int HP=(window+head)->seqNo;
+    	recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT));
+    	//get the seqNo of the ack
+    	struct token t;
+    	t=tokenize(rcvBuf);
+    	//t.seqNo now contains the sequence number of the Ack received
+    	int start=((receiver+recvIndex)->highSeqAcked)%winSize;
+
+    	if (t.seqNo < (receiver+recvIndex)->highSeqAcked) {
+        	//do nothing
+        	//ack is less than the already highest acked
+        	headIncrement=0;
+    	}
+    	else if(t.seqNo==(receiver+recvIndex)->highSeqAcked) {
+        	//duplicate ack
+        	(window+start)->Ack[recvIndex]++;
+        	headIncrement=0;
+        	//put fast retransmit conditions and code here
+        	if ((window+start)->Ack[recvIndex]>=3) {
+            		int y;
+            		y=(start+1)%winSize;
+            		udpSend(y,recvIndex);
+
+        	}
+    	}
+    	else {
+        	int x;
+        	//expected ack received
+        	x=(start+1) % winSize;
+        	while((window+x)->seqNo!=t.seqNo){
+            		(window+x)->Ack[recvIndex]=1;
+            		x=(x+1)%winSize;
+        	}
+        	//need to do once outside the loop
+        	(window+x)->Ack[recvIndex]=1;
+        	(receiver+recvIndex)->highSeqAcked=(window+x)->seqNo;
+        	headIncrement=1;
+    	}
+   	//head update procedure
+   	int HU, HU_M;
+   	HU=minAcked(receiver);
+   	HU_M=HU%winSize;
+   	if ((HU_M!=-1)&&(HU_M!=head)) {
+       		head=HU_M;
+       		inTransit=inTransit-((window+head)->seqNo -HP);
+       		//if any problem try de-initializing Ack of winElement here
+       		//put start_timer() code here
+   	} else if ((HU_M!=-1)&&(headIncrement==1)) {
+       		head=HU_M;
+       		inTransit=inTransit-winSize;
+       		//if any problem try de-initializing Ack of winElement here
+   	}
+    }
+}
+
+

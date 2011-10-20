@@ -20,6 +20,8 @@
 #include <inttypes.h>
 #define u_short uint16_t
 #define u_long uint32_t
+#define MYPORT 4950
+#define sizeofack 32
 
 int restartTimer;
 int runTimer;
@@ -39,21 +41,21 @@ struct server {
 	int highSeqAcked;
 } *receiver;
 
-int head, tail, inTransit;
-int winSize, mss;
-int numServers;
-int nextExpectedSeqNo;
-
 
 struct token{
 	uint32_t seqNo;
 	uint16_t chkSum;
 };
 
+int head, tail, inTransit;
+int winSize, mss;
+int numServers;
+int nextExpectedSeqNo;
+
 int rdpSend(char *fileName);
 int initWindow(int size,int segSize);
 int initReceivers(char **receivers,int numReceivers);
-int framePacket(char *data,uint32_t seqNo,char *pkt);
+int framePacket(char *data,uint32_t seqNo,char *pkt,int flag);
 int udpSendAll(int indexWindow);
 int udpSend(int indexWindow, int indexRcvr);
 struct server udpRcv(char* rcvBuf, int port);
@@ -70,6 +72,7 @@ int printReceiverList();
 void endTimer();
 void resetTimer();
 
+int rdtRecv(int port,char *fileName);
 //some auxilary functions
 int get_in_port(struct sockaddr *sa);
 void *get_in_addr(struct sockaddr *sa);
