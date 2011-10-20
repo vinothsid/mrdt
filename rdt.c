@@ -39,8 +39,6 @@ int rdpSend(char *fileName){
 
 	toSend = (char *) malloc((sizeof(char))* mss );
 
-	packet = (char *) malloc((sizeof(char))* (mss+8 ));
-
 	while(totalSegments!=0){
 		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
 		//if u get arbid end data at the receiver...I will suggest doing it
@@ -52,14 +50,11 @@ int rdpSend(char *fileName){
 		sequenceNumber++;
 		}
 		inTransit++;	
-		framePacket(toSend,sequenceNumber,packet);
-		
+		framePacket(toSend,sequenceNumber,(window+tail)->data);
 		
 		while(inTransit==winSize){ }
 
 		tail= (tail+1) % winSize;
-		
-		(window+tail)->data=packet;
 
 		if(tail==0){
 			
@@ -203,6 +198,19 @@ void resetTimer(){
 int timeoutHandler(){
 	printf("You are in timeout handler\n");
 	runTimer=0;
+	int i;
+	int check;
+	for(i=0;i<numServers;i++){
+		if((window+head)->Ack[i]==0){
+		// send to the i th receiver only not to all
+			
+			check = udpSend(head,i);
+			resetTimer();
+			if(check!=1){
+				printf("\nUnable to send packet %d to receiver%d from timeout handler\n",head,i);}
+		}
+	}
+
 }
 
 void timeout(int ticks)
@@ -210,11 +218,11 @@ void timeout(int ticks)
 	clock_t endwait;
 	endwait = clock() + ticks ;
 	while(clock()< endwait){
-	if(restartTimer==1){
-	printf("Entered timeout rst\n");
-	printf("Timer restarted\n");
-	break;
-	}
+		if(restartTimer==1){
+			printf("Entered timeout rst\n");
+			printf("Timer restarted\n");
+		break;
+		}
 	}
 	printf("the wait is over %ld \n",CLOCKS_PER_SEC);
 
