@@ -39,24 +39,24 @@ struct server {
 	int highSeqAcked;
 } *receiver;
 
-int head, tail, inTransit;
-int winSize, mss;
-int numServers;
-int nextExpectedSeqNo;
-
 
 struct token{
 	uint32_t seqNo;
 	uint16_t chkSum;
 };
 
+int head, tail, inTransit;
+int winSize, mss;
+int numServers;
+int nextExpectedSeqNo;
+
 int rdpSend(char *fileName);
 int initWindow(int size,int segSize);
 int initReceivers(char **receivers,int numReceivers);
-int framePacket(char *data,uint32_t seqNo,char *pkt);
+int framePacket(char *data,uint32_t seqNo,char *pkt,int flag);
 int udpSendAll(int indexWindow);
 int udpSend(int indexWindow, int indexRcvr);
-int udpRcv(char* rcvBuf, int port);
+struct server udpRcv(char* rcvBuf, int port);
 int getRecvIndex(struct server addr);
 int timeoutHandler();
 struct sockaddr_storage udp_rcv();
@@ -70,6 +70,7 @@ int printReceiverList();
 void endTimer();
 void resetTimer();
 
+int rdtRecv(int port,char *fileName);
 //some auxilary functions
 int get_in_port(struct sockaddr *sa);
 void *get_in_addr(struct sockaddr *sa);
