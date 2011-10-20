@@ -30,11 +30,11 @@ int main(int argc,char *argv[]) {
 
 	iret1 = pthread_create( &senderThread, NULL, senderFunction,(void *) argv[argc-3]);
         iret2 = pthread_create( &receiverThread, NULL, recvFunction, NULL);
-	iret3 = pthread_create( &timerThread, NULL, timer, NULL);
+	//iret3 = pthread_create( &timerThread, NULL, timer, NULL);
 	 
 	     pthread_join( timerThread, NULL);
 	     pthread_join( receiverThread, NULL); 
-	     pthread_join( timerThread, NULL); 
+	  //   pthread_join( timerThread, NULL); 
 	
 	
 
