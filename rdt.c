@@ -406,8 +406,8 @@ struct server udpRcv(char* rcvBuf,int port)
         	inet_ntop(their_addr.ss_family,get_in_addr((struct sockaddr *)&their_addr),s, sizeof s),rcvFromPort);
     	printf("listener: packet is %d bytes long\n", numbytes);
     	buf[numbytes] = '\0';
-    	printf("listener: packet contains \"%s\"\n", buf);
-	strcpy(rcvBuf,buf);
+    	printf("listener: packet contains \"%s\"\n", buf+8);
+	memcpy(rcvBuf,buf,mss+9);
 
     close(sockfd);
 
@@ -473,6 +473,7 @@ int framePacket(char *data,uint32_t seqNo,char *pkt,int flag) {
 
 
 	memcpy(pkt+8,data,strlen(data) );
+	
 	return 0;
 }
 
@@ -556,11 +557,13 @@ int rdtRecv( int port  , char *fileName) {
 	char ackPkt[9];
 	receiver = (struct server*)malloc(sizeof(struct winElement));
 	struct server sender;
-	FILE *fp = fopen(fileName,"wa");
+//	FILE *fp = fopen(fileName,"wa");
 	char *temp = (char *)malloc(sizeof(char)*mss + 9);
+	int i=0;
 	while(1) {
 		curWindow = window+nE;
 		sender = udpRcv(temp,port);
+		printf("Received : %s\n",temp+8);
 		strcpy(receiver->ip,sender.ip);
 		receiver->port = sender.port;
 		struct token t;
@@ -570,11 +573,21 @@ int rdtRecv( int port  , char *fileName) {
 			framePacket("",lastInSequenceNo,ackPkt,1);
 			udpServerSend(ackPkt);
 		} else if (t.seqNo == curWindow->seqNo )	{
-			if ( checkChkSum((curWindow->data)+8,t.chkSum) ) {
+			printf("11111111\n");
+		//	if ( checkChkSum((curWindow->data)+8,t.chkSum) ) {
+			if(1) {
+				printf("2222222222\n");
 				x = nE;
-				strcpy(curWindow->data,temp );
-				while(*(curWindow->data)!='\0') {
+				memcpy(curWindow->data,temp,mss+8 );
+				printf("are you here\n");
+				//while(*(curWindow->data+8)!='\0') {
+				while(i < 2) {
+					i++;
+					printf("while\n");
+					printf("inside while : %s\n",(curWindow->data)+8);
+					FILE *fp = fopen(fileName,"wa");
 					fwrite(curWindow->data+8,1,mss,fp);
+					fclose(fp);
 					x = (x+1)%winSize;
 					memset(curWindow->data,0,mss+9);
 					lastInSequenceNo = curWindow->seqNo;
@@ -638,7 +651,7 @@ int udpServerSend (char *pkt)
         return 2;
     }
 
-    if ((numbytes = sendto(sockfd, pkt , strlen(pkt), 0,
+    if ((numbytes = sendto(sockfd, pkt , 9, 0,
              p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sendto");
         exit(1);
