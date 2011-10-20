@@ -1,4 +1,5 @@
 #include "rdt.h"
+//#define numServers 5
  
 int ceil(float x) {
     
@@ -96,6 +97,7 @@ char *itoa(int num) {
 //needs numServers to be correct for proper functioning
 int getRecvIndex (struct server s) {
 	int x=0;
+	//int numServers=5;
 	while((x<numServers)) {
 	    if (!(strcmp((receiver+x)->ip,s.ip))&&((receiver+x)->port==s.port)){
 	        return x;		
@@ -667,15 +669,18 @@ int minAcked(struct server* receiver) {
 }
 
 recvThread() {
+    //printf("\nwaiting to receive Ack,outside while\n");
     while(1) {
     	int headIncrement=0;
     	char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
     	int recvIndex;
     	//store previous head
     	int HP=(window+head)->seqNo;
+	printf("\nwaiting to receive Ack\n");
     	recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT));
     	//get the seqNo of the ack
     	struct token t;
+	printf("\nreceived ack with seqNo:%d\n",t.seqNo);
     	t=tokenize(rcvBuf);
     	//t.seqNo now contains the sequence number of the Ack received
     	int start=((receiver+recvIndex)->highSeqAcked)%winSize;

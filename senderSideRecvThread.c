@@ -14,7 +14,7 @@
 //Function to obtain the minimum of an array
 //might return -1 due to initial conditions calling function should remember
 //to ignore -1
-int minAcked(struct server* receiver) {
+/*int minAcked(struct server* receiver) {
     int min=receiver->highSeqAcked;
     printf("(receiver+x)->highSeqAcked: %d", receiver->highSeqAcked);
     int x=0;
@@ -33,10 +33,12 @@ recvThread() {
     int recvIndex;
     //store previous head
     int HP=(window+head)->seqNo;
+    printf("waiting to receive Ack");
     recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT));
     //get the seqNo of the ack
     struct token t;
     t=tokenize(rcvBuf);
+    printf("\nreceived ack with seqNo:%d\n",t.seqNo);
     //t.seqNo now contains the sequence number of the Ack received
     int start=((receiver+recvIndex)->highSeqAcked)%winSize;  
 
@@ -85,13 +87,16 @@ recvThread() {
        //if any problem try de-initializing Ack of winElement here
    }
    
-}
+}*/
 
 int main(){
+    numServers=5;
+    initWindow(16,0);
+    //initReceivers(receiver,5);
     receiver=(struct server*)malloc(5*sizeof(struct server));
     int a[5]={3,4,2,9,5};
     int x=0;
-    while(x < num) {
+    while(x < numServers) {
         (receiver+x)->highSeqAcked=a[x];
 	x++;
     }
@@ -101,4 +106,5 @@ int main(){
     printf("\nThe minimum value obtained is: %d\n",minm);
     x=ceil(3.25);
     printf("The ceil of 3.0/2.0 is:%f\n",ceil(1.4));
+    recvThread();
 }
