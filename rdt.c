@@ -38,7 +38,7 @@ int rdpSend(char *fileName){
 	(window+winSize-1)->seqNo = 0;
 
 	toSend = (char *) malloc((sizeof(char))* mss );
-
+	packet = (char *) malloc((sizeof(char))* (mss+9) );
 	while(totalSegments!=0){
 		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
 		//if u get arbid end data at the receiver...I will suggest doing it
@@ -50,12 +50,14 @@ int rdpSend(char *fileName){
 		sequenceNumber++;
 		}
 		inTransit++;	
-		framePacket(toSend,sequenceNumber,(window+tail)->data,0);
+		framePacket(toSend,sequenceNumber,packet,0);
 		
 		while(inTransit==winSize){ }
 
 		tail= (tail+1) % winSize;
-
+		memcpy((window+tail)->data,packet,mss+9);
+		printf("\npacket is %s\n",packet+8);
+		printf("\ndata is %s\n",((window+tail)->data)+8);
 		if(tail==0){
 			
 			(window+tail)->seqNo=(window+winSize-1)->seqNo + 1;
@@ -67,7 +69,7 @@ int rdpSend(char *fileName){
 		// PART pending......
 		// Will resume after udpSendAll
 		
-		startTimer(); //timer has to be restarted...has to be done
+		//startTimer(); //timer has to be restarted...has to be done
 		printf("Timer Started\n");
 	
 		totalSegments--;
@@ -311,7 +313,7 @@ int udpSend(int indexWindow,int indexRcvr)
         return 2;
     }
 
-    if ((numbytes = sendto(sockfd, (window+indexWindow)->data, strlen((window+indexWindow)->data), 0,
+    if ((numbytes = sendto(sockfd, (window+indexWindow)->data, mss+9, 0,
              p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sendto");
         exit(1);
