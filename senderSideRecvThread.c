@@ -92,6 +92,7 @@ recvThread() {
 int main(){
     numServers=5;
     initWindow(16,0);
+    mss=10;
     //initReceivers(receiver,5);
     receiver=(struct server*)malloc(5*sizeof(struct server));
     int a[5]={3,4,2,9,5};
