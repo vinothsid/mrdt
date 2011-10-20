@@ -88,7 +88,7 @@ int rdpSend(char *fileName){
 
 
 /***************************************************** I to A********************************/
->>>>>>> 9cff05030508a8e3c62482ffdebf23928dcb2728
+
 char *itoa(int num) {
         char *str;
         str = (char *)malloc(5);
