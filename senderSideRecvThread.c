@@ -2,7 +2,7 @@
 #define num 5
 #define MYPORT 4950
 #define winSize 16
-#define sizeofAck 32
+#define sizeofack 32
 /*int ceil(float x) {
     if (((int)x % 2)==0){
         return x;
@@ -28,9 +28,12 @@ int minAcked(struct server* receiver) {
 }
 
 recvThread() {
-    char *rcvBuf=(char *)malloc(sizeofAck*sizeof(char));
+    int headIncrement=0;
+    char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
     int recvIndex;
-    recvIndex=udpRcv(rcvBuf,MYPORT);
+    //store previous head
+    int HP=(window+head)->seqNo;
+    recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT));
     //get the seqNo of the ack
     struct token t;
     t=tokenize(rcvBuf);
@@ -40,11 +43,19 @@ recvThread() {
     if (t.seqNo < (receiver+recvIndex)->highSeqAcked) {
         //do nothing
         //ack is less than the already highest acked
+	headIncrement=0;
     } 
     else if(t.seqNo==(receiver+recvIndex)->highSeqAcked) {
         //duplicate ack
         (window+start)->Ack[recvIndex]++;
+	headIncrement=0;
         //put fast retransmit conditions and code here
+	if ((window+start)->Ack[recvIndex]>=3) {
+	    int y;
+	    y=(start+1)%winSize;
+            udpSend(y,recvIndex);
+	    
+	} 
     }
     else {
         int x;
@@ -57,6 +68,7 @@ recvThread() {
         //need to do once outside the loop
         (window+x)->Ack[recvIndex]=1;
         (receiver+recvIndex)->highSeqAcked=(window+x)->seqNo;
+	headIncrement=1;
     }
    //head update procedure
    int HU, HU_M;
@@ -64,8 +76,15 @@ recvThread() {
    HU_M=HU%winSize;
    if ((HU_M!=-1)&&(HU_M!=head)) {
        head=HU_M;
+       inTransit=inTransit-((window+head)->seqNo -HP);
+       //if any problem try de-initializing Ack of winElement here
        //put start_timer() code here
+   } else if ((HU_M!=-1)&&(headIncrement==1)) {
+       head=HU_M;
+       inTransit=inTransit-winSize;
+       //if any problem try de-initializing Ack of winElement here
    }
+   
 }
 
 int main(){
