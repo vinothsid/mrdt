@@ -138,7 +138,9 @@ void *timer()
 int udpSend(int indexWindow,int indexRcvr)
 {
     assert(*(window+indexWindow)->data!='\0');
-    
+    //printf("\nData to be sent is of size:%d\n",strlen((window+1)->data));
+    //printf("\nData to be sent is:%s\n",(window+indexWindow)->data);
+ 
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -168,9 +170,13 @@ int udpSend(int indexWindow,int indexRcvr)
         fprintf(stderr, "failed to bind socket\n");
         return 2;
     }
-
-    if ((numbytes = sendto(sockfd, (window+indexWindow)->data, strlen((window+indexWindow)->data), 0,
-             p->ai_addr, p->ai_addrlen)) == -1) {
+    /*char* buf;
+    buf=(char*)malloc(sizeof(char)*30);
+    strcpy(buf,"many happy returns of");
+    (window+1)->data=buf;*/
+    printf("\nData to be sent is of size:%d\n",strlen((window+indexWindow)->data));
+    printf("\nData to be sent is:%s\n",(window+indexWindow)->data);
+    if ((numbytes = sendto(sockfd, (window+indexWindow)->data, strlen((window+indexWindow)->data), 0,p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sendto");
         exit(1);
     }
