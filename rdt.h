@@ -43,7 +43,7 @@ struct server {
 
 
 struct token{
-	uint32_t seqNo;
+	int32_t seqNo;
 	uint16_t chkSum;
 };
 
@@ -58,7 +58,7 @@ int initReceivers(char **receivers,int numReceivers);
 int framePacket(char *data,uint32_t seqNo,char *pkt,int flag);
 int udpSendAll(int indexWindow);
 int udpSend(int indexWindow, int indexRcvr);
-struct server udpRcv(char* rcvBuf, int port);
+struct server udpRcv(char* rcvBuf, int port,int bufSize);
 int getRecvIndex(struct server addr);
 int timeoutHandler();
 struct sockaddr_storage udp_rcv();
@@ -83,6 +83,6 @@ void startTimer();
 void *timer();
 u_short computeChkSum (u_short *buf);
 int checkChkSum(u_short *buf,u_short checksum); 
-
+int printInTransitWindowInfo();
 
 

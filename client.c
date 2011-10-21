@@ -3,13 +3,14 @@
 
 void *senderFunction(char *fileName){
 	rdpSend(fileName);
-	while(1){} // for testing only
+//	while(1){} // for testing only
 	}
 
 
 void *recvFunction(){
 	recvThread();
-	while(1){} // for testing only
+//	while(1){} // for testing only
+
 	}
 
 
@@ -18,6 +19,8 @@ int main(int argc,char *argv[]) {
 	 pthread_t timerThread, senderThread, receiverThread;
 	int nReceivers,size,mss;
 	int iret1,iret2,iret3;
+
+	//strcpy();	
 
 	nReceivers = (argc -3 )/2;
 	initReceivers(argv,nReceivers);

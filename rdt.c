@@ -35,7 +35,8 @@ int rdpSend(char *fileName){
 	
 	inTransit=0;
 	sequenceNumber = 0;
-	(window+winSize-1)->seqNo = 0;
+//Vinoth why below stat is needed
+//	(window+winSize-1)->seqNo = 0;
 
 	toSend = (char *) malloc((sizeof(char))* mss );
 	packet = (char *) malloc((sizeof(char))* (mss+9) );
@@ -46,32 +47,37 @@ int rdpSend(char *fileName){
 		if(sizeExtracted ==0 ){printf("either not working or finshed\n");break;}
 		printf("%d\t",sizeExtracted);
 		printf("%s\t",toSend);
-		if(sequenceNumber!=0){
-		sequenceNumber++;
-		}
-		inTransit++;	
+		//commenting following lines //don't understand why?!
+		//if(sequenceNumber!=0){
+		//	sequenceNumber++;
+		//}
+		//inTransit++;	
 		framePacket(toSend,sequenceNumber,packet,0);
-		
 		while(inTransit==winSize){ }
 
 		tail= (tail+1) % winSize;
 		memcpy((window+tail)->data,packet,mss+9);
-		printf("\npacket is %s\n",packet+8);
+		//printf("\npacket is %s\n",packet+8);
 		printf("\ndata is %s\n",((window+tail)->data)+8);
-		if(tail==0){
+		/*if(tail==0){
 			
 			(window+tail)->seqNo=(window+winSize-1)->seqNo + 1;
 		}else{
 			(window+tail)->seqNo=((window+((tail-1)%winSize))->seqNo )+1;
-			}
+			}*/
+		(window+tail)->seqNo = sequenceNumber;
 		if(udpSendAll(tail)!=1)
-			printf("Some error while sending to all\n");		 
+			printf("Some error while sending to all\n");		
+
+		sleep(1); 
 		// PART pending......
 		// Will resume after udpSendAll
-		
+		inTransit++;//incrementing only after sending packet
+		sequenceNumber++;
 		//startTimer(); //timer has to be restarted...has to be done
 		printf("Timer Started\n");
-	
+
+		printInTransitWindowInfo();	
 		totalSegments--;
 	}
 
@@ -99,7 +105,8 @@ char *itoa(int num) {
 int getRecvIndex (struct server s) {
 	int x=0;
 	while((x<numServers)) {
-	    if (!(strcmp((receiver+x)->ip,s.ip))&&((receiver+x)->port==s.port)){
+//	    if (!(strcmp((receiver+x)->ip,s.ip))&&((receiver+x)->port==s.port)){
+	    if (!(strcmp((receiver+x)->ip,s.ip))) {
 	        return x;		
 	    } 
 	    else {
@@ -170,6 +177,25 @@ int printWindowInfo() {
 	}
 	printf("\n");
 	return 1;
+
+}
+
+/************************Print InTransit window******************************************/
+
+int printInTransitWindowInfo() {
+        int i;
+        printf("Total Window Size : %d\n",winSize);
+        printf("Maximum Segment Size : %d\n",mss);
+        printf("In Transit window size : %d\n",inTransit);
+        for (i=head;i<=tail;i++ ) {
+                printf(" %d -> ",(window+i)->seqNo);
+                if( *((window + i )->data) == '\0' )
+                        printf("0;");
+                else
+                        printf("1");  // CAN WE PRINT DATA ?? can it happen that the window ele that we are printing here might be wiped off b4 ?
+        }
+        printf("\n");
+        return 1;
 
 }
 
@@ -344,7 +370,7 @@ int get_in_port(struct sockaddr *sa)
     }
 }
 
-struct server udpRcv(char* rcvBuf,int port)
+struct server udpRcv(char* rcvBuf,int port,int bufSize)
 {
     struct server source;
     int sockfd;
@@ -409,7 +435,7 @@ struct server udpRcv(char* rcvBuf,int port)
     	printf("listener: packet is %d bytes long\n", numbytes);
     	buf[numbytes] = '\0';
     	printf("listener: packet contains \"%s\"\n", buf+8);
-	memcpy(rcvBuf,buf,mss+9);
+	memcpy(rcvBuf,buf,bufSize);
 
     close(sockfd);
 
@@ -557,59 +583,66 @@ int rdtRecv( int port  , char *fileName) {
 	window->seqNo = 0;
 	struct winElement *curWindow;
 	char ackPkt[9];
-	receiver = (struct server*)malloc(sizeof(struct winElement));
+	receiver = (struct server*)malloc(sizeof(struct server));
 	struct server sender;
 //	FILE *fp = fopen(fileName,"wa");
 	char *temp = (char *)malloc(sizeof(char)*mss + 9);
+	FILE *fp = fopen(fileName,"w");
+	fclose(fp);
 	int i=0;
+	curWindow = window+nE;
 	while(1) {
-		curWindow = window+nE;
-		sender = udpRcv(temp,port);
+		sender = udpRcv(temp,port,mss+9);
 		printf("Received : %s\n",temp+8);
 		strcpy(receiver->ip,sender.ip);
-		receiver->port = sender.port;
+		receiver->port = MYPORT; //sender.port;
 		struct token t;
-		t = tokenize(curWindow->data);
-		
+		t = tokenize(temp);
+	
+		printf("Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);	
 		if ( (curWindow->seqNo - winSize ) <= t.seqNo && t.seqNo < curWindow->seqNo) {
 			framePacket("",lastInSequenceNo,ackPkt,1);
 			udpServerSend(ackPkt);
 		} else if (t.seqNo == curWindow->seqNo )	{
 			printf("11111111\n");
-		//	if ( checkChkSum((curWindow->data)+8,t.chkSum) ) {
+			//if ( checkChkSum(temp+8,t.chkSum) ) {
 			if(1) {
-				printf("2222222222\n");
 				x = nE;
-				memcpy(curWindow->data,temp,mss+8 );
+				memcpy(curWindow->data,temp+8,mss );
+				curWindow->seqNo = t.seqNo;
+				
+				printf("2222222222 curWindow->data : %s\n",curWindow->data);
 				printf("are you here\n");
-				//while(*(curWindow->data+8)!='\0') {
-				while(i < 2) {
-					i++;
-					printf("while\n");
-					printf("inside while : %s\n",(curWindow->data)+8);
-					FILE *fp = fopen(fileName,"wa");
-					fwrite(curWindow->data+8,1,mss,fp);
+				while(*(curWindow->data)!='\0') {
+				//while(i < 2) {
+					//i++;
+					//printf("while\n");
+					printf("inside while : %s\n",(curWindow->data));
+					fp = fopen(fileName,"a");
+					fputs(curWindow->data,fp);
 					fclose(fp);
 					x = (x+1)%winSize;
-					memset(curWindow->data,0,mss+9);
+					memset(curWindow->data,0,mss);
 					lastInSequenceNo = curWindow->seqNo;
-					curWindow = window+x;	
+					curWindow = window+x;
+
 				}
 				nE = x;
-				
+				printf("Next expected : %d\n",nE);	
+				printf("LastSequence Num : %d\n",lastInSequenceNo);
 				curWindow->seqNo = lastInSequenceNo + 1;
 				framePacket("",lastInSequenceNo,ackPkt,1);
 				udpServerSend(ackPkt);
 							
 						
 			} else {
-				memset(curWindow->data,0,mss+9); // if checksum failed ,reset the data and continue the loop
+				memset(curWindow->data,0,mss); // if checksum failed ,reset the data and continue the loop
 				continue;
 			}
 			 
 		} else if ( t.seqNo < curWindow->seqNo + winSize  ) {
 			index = t.seqNo%winSize	;
-			strcpy((window + index)->data,temp);
+			memcpy((window + index)->data,temp+8,mss);
 			(window + index)->seqNo = t.seqNo;
 		}
 
@@ -688,19 +721,25 @@ recvThread() {
     	int recvIndex;
     	//store previous head
     	int HP=(window+head)->seqNo;
-    	recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT));
+    	recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT,sizeofack));
+
+	printf("Receiver index : %d\n",recvIndex);
     	//get the seqNo of the ack
     	struct token t;
     	t=tokenize(rcvBuf);
+
+	printf("recvThread : Received ack for seqNo : %d\n",t.seqNo);
     	//t.seqNo now contains the sequence number of the Ack received
     	int start=((receiver+recvIndex)->highSeqAcked)%winSize;
 
-    	if (t.seqNo < (receiver+recvIndex)->highSeqAcked) {
+    	if ( t.seqNo <  (receiver+recvIndex)->highSeqAcked) {
         	//do nothing
         	//ack is less than the already highest acked
         	headIncrement=0;
+		printf(" 1st if\n");
     	}
     	else if(t.seqNo==(receiver+recvIndex)->highSeqAcked) {
+		printf(" 2nd if\n");
         	//duplicate ack
         	(window+start)->Ack[recvIndex]++;
         	headIncrement=0;
@@ -716,6 +755,7 @@ recvThread() {
         	int x;
         	//expected ack received
         	x=(start+1) % winSize;
+		printf("Value of x : %d\n",x);
         	while((window+x)->seqNo!=t.seqNo){
             		(window+x)->Ack[recvIndex]=1;
             		x=(x+1)%winSize;
@@ -724,21 +764,27 @@ recvThread() {
         	(window+x)->Ack[recvIndex]=1;
         	(receiver+recvIndex)->highSeqAcked=(window+x)->seqNo;
         	headIncrement=1;
+		printf("Received ack : %d\n",t.seqNo);
+		//printInTransitWindow();
     	}
    	//head update procedure
+	//HU head update
+	//HU_M head update modulo
+	//HP Head Previous seqNo //previous heads sequence no.
    	int HU, HU_M;
    	HU=minAcked(receiver);
    	HU_M=HU%winSize;
-   	if ((HU_M!=-1)&&(HU_M!=head)) {
+   	if ((HU_M!=-1)&&((HU_M!=head)||(headIncrement==1))) {
        		head=HU_M;
        		inTransit=inTransit-((window+head)->seqNo -HP);
        		//if any problem try de-initializing Ack of winElement here
        		//put start_timer() code here
-   	} else if ((HU_M!=-1)&&(headIncrement==1)) {
+   	} /*else if ((HU_M!=-1)&&(headIncrement==1)) {
        		head=HU_M;
        		inTransit=inTransit-winSize;
        		//if any problem try de-initializing Ack of winElement here
-   	}
+   	}*/
+//	free(rcvBuf);
     }
 }
 
