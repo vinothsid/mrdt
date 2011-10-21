@@ -602,6 +602,7 @@ int rdtRecv( int port  , char *fileName) {
 	FILE *fp = fopen(fileName,"w");
 	fclose(fp);
 	int i=0;
+	int test=1;
 	curWindow = window+nE;
 	while(1) {
 		sender = udpRcv(temp,port,mss+9);
@@ -620,6 +621,11 @@ int rdtRecv( int port  , char *fileName) {
 			//if ( checkChkSum(temp+8,t.chkSum) ) {
 			if (lossFunction()) {
 				printf("\nProbabilistic drop: packet seqNo: %d\n",t.seqNo);
+				continue;
+			}
+			if ((test==1)&&(t.seqNo==20)) {
+				test=0;
+				printf("\n\n\n\nIntended los no 20\n\n\n\n");
 				continue;
 			}
 			if(1) {
@@ -806,6 +812,14 @@ recvThread() {
 			}
 			n=(n+1)% winSize;
 		}
+		//once outsied the loop
+		int i=0;
+                        if (n != -1) {
+                                while(i < numServers) {
+                                        (window+n)->Ack[i]=0;
+                                        i++;
+                                }
+                        }
 		//need to change below line //not correct
 		//HP=(receiver+recvIndex)->highSeqAcked;
 		HP=HU; //this maybe the correct line
