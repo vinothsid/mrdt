@@ -43,7 +43,8 @@ int rdpSend(char *fileName){
 	while(totalSegments!=0){
 		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
 		//if u get arbid end data at the receiver...I will suggest doing it
-		sizeExtracted = fread(toSend,1,mss,fp);
+		memset(toSend,'\0',mss);
+    sizeExtracted = fread(toSend,1,mss,fp);
 		if(sizeExtracted ==0 ){printf("either not working or finshed\n");break;}
 		printf("%d\t",sizeExtracted);
 		printf("%s\t",toSend);
@@ -52,6 +53,7 @@ int rdpSend(char *fileName){
 		//	sequenceNumber++;
 		//}
 		//inTransit++;	
+    memset(packet,'\0',mss+9);
 		framePacket(toSend,sequenceNumber,packet,0);
 		while(inTransit==winSize){ }
 
