@@ -780,6 +780,7 @@ recvThread() {
        		head=HU_M;
        		//inTransit=inTransit-((window+head)->seqNo -HP);
        		inTransit=inTransit-((t.seqNo-HP));
+           HP=(receiver+recvIndex)->highSeqAcked;
            //if any problem try de-initializing Ack of winElement here
        		//put start_timer() code here
    	} /*else if ((HU_M!=-1)&&(headIncrement==1)) {
