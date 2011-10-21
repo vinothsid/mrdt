@@ -717,12 +717,12 @@ int minAcked(struct server* receiver) {
 }
 
 recvThread() {
+    int HP=-1;
     while(1) {
     	int headIncrement=0;
     	char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
     	int recvIndex;
     	//store previous head
-    	int HP=(window+head)->seqNo;
     	recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT,sizeofack));
 
 	printf("Receiver index : %d\n",recvIndex);
@@ -778,8 +778,9 @@ recvThread() {
    	HU_M=HU%winSize;
    	if ((HU_M!=-1)&&((HU_M!=head)||(headIncrement==1))) {
        		head=HU_M;
-       		inTransit=inTransit-((window+head)->seqNo -HP);
-       		//if any problem try de-initializing Ack of winElement here
+       		//inTransit=inTransit-((window+head)->seqNo -HP);
+       		inTransit=inTransit-((t.seqNo-HP));
+           //if any problem try de-initializing Ack of winElement here
        		//put start_timer() code here
    	} /*else if ((HU_M!=-1)&&(headIncrement==1)) {
        		head=HU_M;
