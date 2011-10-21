@@ -238,7 +238,7 @@ int timeoutHandler(){
 	for(i=0;i<numServers;i++){
 		printf("window+head -> Ack[i] : %d\n",(window+head)->Ack[i]);
 		printf("window+head -> seqNo : %d \n", (window+head)->seqNo);
-		if((window+head)->Ack[i]==0){
+		if(((window+head)->Ack[i]==0) && ((window+head)->seqNo==HP+1)){
 		// send to the i th receiver only not to all
 				
 			check = udpSend(head,i);
@@ -288,7 +288,7 @@ void *timer()
 			restartTimer=0;
 			//printf("Timer Started for %d consecutive time\n",n);
 			n++;
-			timeout(5000000);
+			timeout(500000);
 		
 			if((runTimer==1)&&(restartTimer==0)) {
 			//if(restartTimer==0&&runTimer==1){
@@ -738,6 +738,7 @@ int minAcked(struct server* receiver) {
 
 recvThread() {
     HP=-1;
+    int counter=0;
     while(1) {
     	headIncrement=0;
     	char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
@@ -757,6 +758,7 @@ recvThread() {
         	//do nothing
         	//ack is less than the already highest acked
         	headIncrement=0;
+		
 		printf(" 1st if\n");
     	}
     	else if(t.seqNo==(receiver+recvIndex)->highSeqAcked) {
@@ -764,6 +766,8 @@ recvThread() {
         	//duplicate ack
         	(window+start)->Ack[recvIndex]++;
         	headIncrement=0;
+		headIncrement=t.seqNo;
+		//while(1) {}
         	//put fast retransmit conditions and code here
         	if ((window+start)->Ack[recvIndex]>=3) {
             		int y;
@@ -798,6 +802,7 @@ recvThread() {
    	HU_M=(HU+1)%winSize;
    	if ((HU_M!=-1)&&((HU_M!=head)||(headIncrement==1))) {
        		head=HU_M;
+		resetTimer();
        		//inTransit=inTransit-((window+head)->seqNo -HP);
        		inTransit=inTransit-((HU-HP));
 		//code to set seqNo's to zero
@@ -825,9 +830,9 @@ recvThread() {
 		HP=HU; //this maybe the correct line
 		//if any problem try de-initializing Ack of winElement here
        		//put start_timer() code here
-		printf("\nrecvThread: moving head : %d\n",HP);
+		printf("\nrecvThread: moving head : %d\n",HU_M);
 		printInTransitWindowInfo();
-		resetTimer();
+		//resetTimer();
 		//below is the place where timer should end
 		//nead to replace 20 with the initial value of totalSegments
 		if (HP==20) {
