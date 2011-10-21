@@ -40,11 +40,12 @@ int rdpSend(char *fileName){
 
 	toSend = (char *) malloc((sizeof(char))* mss );
 	packet = (char *) malloc((sizeof(char))* (mss+9) );
+	startTimer();
 	while(totalSegments!=0){
 		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
 		//if u get arbid end data at the receiver...I will suggest doing it
 		memset(toSend,'\0',mss);
-    sizeExtracted = fread(toSend,1,mss,fp);
+		sizeExtracted = fread(toSend,1,mss,fp);
 		if(sizeExtracted ==0 ){printf("either not working or finshed\n");break;}
 		printf("%d\t",sizeExtracted);
 		printf("%s\t",toSend);
@@ -53,7 +54,7 @@ int rdpSend(char *fileName){
 		//	sequenceNumber++;
 		//}
 		//inTransit++;	
-    memset(packet,'\0',mss+9);
+    		memset(packet,'\0',mss+9);
 		framePacket(toSend,sequenceNumber,packet,0);
 		while(inTransit==winSize){ }
 
@@ -71,20 +72,24 @@ int rdpSend(char *fileName){
 		if(udpSendAll(tail)!=1)
 			printf("Some error while sending to all\n");		
 
-		sleep(1); 
+		//sleep(1); 
 		// PART pending......
 		// Will resume after udpSendAll
 		inTransit++;//incrementing only after sending packet
 		sequenceNumber++;
-		//startTimer(); //timer has to be restarted...has to be done
-		printf("Timer Started\n");
-
+		if (inTransit==1) {
+			resetTimer(); //timer has to be restarted...has to be done
+			printf("Timer Started\n");
+		}
+		printf("\nfrom the rdpSend\t");
 		printInTransitWindowInfo();	
 		totalSegments--;
+		sleep(1);
 	}
 
 	fclose(fp);
-	return 1;
+	//return 1;
+	while(1) {}
 
 }
 
@@ -221,26 +226,29 @@ void endTimer(){
 }
 
 void resetTimer(){
-	printf("Entered rst\n");
+	//printf("Entered rst\n");
 	restartTimer=1;
 }
 
 int timeoutHandler(){
 	printf("You are in timeout handler\n");
-	runTimer=0;
+	//runTimer=0;
 	int i;
 	int check;
 	for(i=0;i<numServers;i++){
+		printf("window+head -> Ack[i] : %d\n",(window+head)->Ack[i]);
+		printf("window+head -> seqNo : %d \n", (window+head)->seqNo);
 		if((window+head)->Ack[i]==0){
 		// send to the i th receiver only not to all
-			
+				
 			check = udpSend(head,i);
 			resetTimer();
+			//sleep(1);
 			if(check!=1){
 				printf("\nUnable to send packet %d to receiver%d from timeout handler\n",head,i);}
 		}
 	}
-
+	resetTimer();
 }
 
 void timeout(int ticks)
@@ -249,14 +257,12 @@ void timeout(int ticks)
 	endwait = clock() + ticks ;
 	while(clock()< endwait){
 		if(restartTimer==1){
-			printf("Entered timeout rst\n");
-			printf("Timer restarted\n");
+			//printf("Entered timeout rst\n");
+			//printf("Timer restarted\n");
 		break;
 		}
 	}
-	printf("the wait is over %ld \n",CLOCKS_PER_SEC);
-
-
+	//printf("the wait is over %ld \n",CLOCKS_PER_SEC);
 }
 
 void startTimer(){
@@ -271,17 +277,21 @@ void *timer()
 	int n;
 	n=0;
 	
-	restartTimer=0;
+	//restartTimer=0;
 	while(1){
+		//restartTimer=0;
 		while(runTimer==1)
-		{
-
-			printf("Timer Started for %d consecutive time\n",n);
+		{       
+			/*if ((totalSegments==0)&&(minAcked(receiver))) {
+				endTimer();
+			}*/
+			restartTimer=0;
+			//printf("Timer Started for %d consecutive time\n",n);
 			n++;
-			timeout(500);
+			timeout(5000000);
 		
-
-			if(restartTimer==0&&runTimer==1){
+			if((runTimer==1)&&(restartTimer==0)) {
+			//if(restartTimer==0&&runTimer==1){
 				timeoutHandler();
 			}
 	
@@ -309,9 +319,6 @@ int udpSendAll(int indexWindow){
 /*===============================udpSend==========================*/
 int udpSend(int indexWindow,int indexRcvr)
 {
-    //printf("\nData to be sent is of size:%d\n",strlen((window+1)->data));
-    //printf("\nData to be sent is:%s\n",(window+indexWindow)->data);
- 
     //assert(*(window+indexWindow)->data!='\0');
     
     int sockfd;
@@ -611,6 +618,10 @@ int rdtRecv( int port  , char *fileName) {
 		} else if (t.seqNo == curWindow->seqNo )	{
 			printf("11111111\n");
 			//if ( checkChkSum(temp+8,t.chkSum) ) {
+			if (lossFunction()) {
+				printf("\nProbabilistic drop: packet seqNo: %d\n",t.seqNo);
+				continue;
+			}
 			if(1) {
 				x = nE;
 				memcpy(curWindow->data,temp+8,mss );
@@ -720,14 +731,13 @@ int minAcked(struct server* receiver) {
 }
 
 recvThread() {
-    int HP=-1;
+    HP=-1;
     while(1) {
-    	int headIncrement=0;
+    	headIncrement=0;
     	char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
     	int recvIndex;
     	//store previous head
     	recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT,sizeofack));
-
 	printf("Receiver index : %d\n",recvIndex);
     	//get the seqNo of the ack
     	struct token t;
@@ -753,6 +763,7 @@ recvThread() {
             		int y;
             		y=(start+1)%winSize;
             		udpSend(y,recvIndex);
+			(window+start)->Ack[recvIndex]=0;
 
         	}
     	}
@@ -776,23 +787,53 @@ recvThread() {
 	//HU head update
 	//HU_M head update modulo
 	//HP Head Previous seqNo //previous heads sequence no.
-   	int HU, HU_M;
+   	//int HU, HU_M;
    	HU=minAcked(receiver);
-   	HU_M=HU%winSize;
+   	HU_M=(HU+1)%winSize;
    	if ((HU_M!=-1)&&((HU_M!=head)||(headIncrement==1))) {
        		head=HU_M;
        		//inTransit=inTransit-((window+head)->seqNo -HP);
-       		inTransit=inTransit-((t.seqNo-HP));
-           HP=(receiver+recvIndex)->highSeqAcked;
-           //if any problem try de-initializing Ack of winElement here
+       		inTransit=inTransit-((HU-HP));
+		//code to set seqNo's to zero
+		int n=((HP+1) % winSize);
+		while((window+n)->seqNo != HU) {
+			int i=0;
+			if (n != -1) {	
+				while(i < numServers) {
+					(window+n)->Ack[i]=0;	
+					i++;
+				}
+			}
+			n=(n+1)% winSize;
+		}
+		//need to change below line //not correct
+		//HP=(receiver+recvIndex)->highSeqAcked;
+		HP=HU; //this maybe the correct line
+		//if any problem try de-initializing Ack of winElement here
        		//put start_timer() code here
-   	} /*else if ((HU_M!=-1)&&(headIncrement==1)) {
-       		head=HU_M;
-       		inTransit=inTransit-winSize;
-       		//if any problem try de-initializing Ack of winElement here
-   	}*/
-//	free(rcvBuf);
+		printf("\nrecvThread: moving head : %d\n",HP);
+		printInTransitWindowInfo();
+		resetTimer();
+		//below is the place where timer should end
+		//nead to replace 20 with the initial value of totalSegments
+		if (HP==20) {
+			endTimer();
+			exit(1);
+		}
+   	} 
+	free(rcvBuf);
     }
 }
 
-
+int lossFunction() {
+	float x;
+	srand(time(NULL));
+	x=rand() % 1024;
+	x=x/1024.0;
+	printf("\nlossProbability number: %f\n",x);
+	if (x < lossProbability) {
+		return 1;
+	} else {
+	        return 0;
+ 	}
+}

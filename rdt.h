@@ -1,4 +1,5 @@
 //#include <tgmath.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -23,6 +24,11 @@
 #define MYPORT 4950
 #define sizeofack 32
 
+int HU;
+int HU_M;
+int HP;
+int headIncrement;
+float lossProbability;
 int restartTimer;
 int runTimer;
 int segmentNumber;
