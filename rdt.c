@@ -792,7 +792,8 @@ recvThread() {
         	//need to do once outside the loop
         	(window+x)->Ack[recvIndex]=1;
         	(receiver+recvIndex)->highSeqAcked=(window+x)->seqNo;
-        	headIncrement=1;
+
+ //       	headIncrement=1;
 		printf("Received ack : %d\n",t.seqNo);
 		//printInTransitWindow();
     	}
@@ -803,7 +804,8 @@ recvThread() {
    	//int HU, HU_M;
    	HU=minAcked(receiver);
    	HU_M=(HU+1)%winSize;
-   	if ((HU_M!=-1)&&((HU_M!=head)||(headIncrement==1))) {
+	//HU_seq=(window+(HU%winSize))->seqNo;
+   	if ((HU_M!=-1)&&(HU!=HP)) {
 		//code to set seqNo's to zero
 		int n=((HP+1) % winSize);
 		while((window+n)->seqNo != HU) {
