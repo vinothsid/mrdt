@@ -237,12 +237,12 @@ void resetTimer(){
 }
 
 int timeoutHandler(){
-	printf("You are in timeout handler\n");
+//	printf("You are in timeout handler\n");
 	//runTimer=0;
 	int i;
 	int check;
 	for(i=0;i<numServers;i++){
-		printf("window+head -> Ack[i] : %d\n",(window+head)->Ack[i]);
+		printf("window+head -> Ack[%d] : %d\n",i,(window+head)->Ack[i]);
 		printf("window+head -> seqNo : %d \n", (window+head)->seqNo);
 		if(((window+head)->Ack[i]==0) && ((window+head)->seqNo==HP+1)){
 		// send to the i th receiver only not to all
@@ -294,7 +294,7 @@ void *timer()
 			restartTimer=0;
 			//printf("Timer Started for %d consecutive time\n",n);
 			n++;
-			timeout(5000000);
+			timeout(500000);
 		
 			if((runTimer==1)&&(restartTimer==0)) {
 			//if(restartTimer==0&&runTimer==1){
@@ -365,7 +365,7 @@ int udpSend(int indexWindow,int indexRcvr)
 
     freeaddrinfo(servinfo);
     //if (debug == 1 || log ==1) {
-    	printf("sent %d bytes to %s\n", numbytes,(receiver+indexRcvr)->ip);
+    //	printf("sent %d bytes to %s\n", numbytes,(receiver+indexRcvr)->ip);
     //}
     close(sockfd);
     return 1;
@@ -448,11 +448,11 @@ struct server udpRcv(char* rcvBuf,int port,int bufSize)
 	strcpy(source.ip,inet_ntop(their_addr.ss_family,get_in_addr((struct sockaddr *)&their_addr),s, sizeof s));
 	source.port=rcvFromPort;
 
-    	printf("listener: got packet from %s port %d\n",
-        	inet_ntop(their_addr.ss_family,get_in_addr((struct sockaddr *)&their_addr),s, sizeof s),rcvFromPort);
-    	printf("listener: packet is %d bytes long\n", numbytes);
+//    	printf("listener: got packet from %s port %d\n",
+//        	inet_ntop(their_addr.ss_family,get_in_addr((struct sockaddr *)&their_addr),s, sizeof s),rcvFromPort);
+ //   	printf("listener: packet is %d bytes long\n", numbytes);
     	buf[numbytes] = '\0';
-    	printf("listener: packet contains \"%s\"\n", buf+8);
+ //   	printf("listener: packet contains \"%s\"\n", buf+8);
 	memcpy(rcvBuf,buf,bufSize);
 
     close(sockfd);
@@ -741,6 +741,7 @@ int minAcked(struct server* receiver) {
 recvThread() {
     HP=-1;
     //int counter=0;
+    
     while(1) {
     	headIncrement=0;
     	char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
@@ -824,8 +825,12 @@ recvThread() {
                         while(i < numServers) {
                                 (window+n)->Ack[i]=0;
                                 i++;
+				printf("(window+n)->Ack[%d] : %d\n",i,(window+n)->Ack[i]);
                         }
                 }
+
+		
+			
        		head=HU_M;
 		resetTimer();
        		//inTransit=inTransit-((window+head)->seqNo -HP);
