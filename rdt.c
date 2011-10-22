@@ -622,16 +622,12 @@ int rdtRecv( int port  , char *fileName) {
 		if ( (curWindow->seqNo - winSize ) <= t.seqNo && t.seqNo < curWindow->seqNo) {
 			framePacket("",lastInSequenceNo,ackPkt,1);
 			udpServerSend(ackPkt);
+			printf("Ack for seqNo : %d\n",lastInSequenceNo);
 		} else if (t.seqNo == curWindow->seqNo )	{
-			printf("11111111\n");
+//			printf("11111111\n");
 			//if ( checkChkSum(temp+8,t.chkSum) ) {
 			if (lossFunction()) {
 				printf("\nProbabilistic drop: packet seqNo: %d\n",t.seqNo);
-				continue;
-			}
-			if ((test==1)&&(t.seqNo==20)) {
-				test=0;
-				printf("\n\n\n\nIntended los no 20\n\n\n\n");
 				continue;
 			}
 			if(1) {
@@ -639,8 +635,7 @@ int rdtRecv( int port  , char *fileName) {
 				memcpy(curWindow->data,temp+8,mss );
 				curWindow->seqNo = t.seqNo;
 				
-				printf("2222222222 curWindow->data : %s\n",curWindow->data);
-				printf("are you here\n");
+				printf("curWindow->data : %s\n",curWindow->data);
 				while(*(curWindow->data)!='\0') {
 				//while(i < 2) {
 					//i++;
@@ -657,10 +652,11 @@ int rdtRecv( int port  , char *fileName) {
 				}
 				nE = x;
 				printf("Next expected : %d\n",nE);	
-				printf("LastSequence Num : %d\n",lastInSequenceNo);
+				printf("Acked LastSequence Num : %d\n",lastInSequenceNo);
 				curWindow->seqNo = lastInSequenceNo + 1;
 				framePacket("",lastInSequenceNo,ackPkt,1);
 				udpServerSend(ackPkt);
+				
 							
 						
 			} else {
