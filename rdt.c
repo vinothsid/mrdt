@@ -294,7 +294,7 @@ void *timer()
 			restartTimer=0;
 			//printf("Timer Started for %d consecutive time\n",n);
 			n++;
-			timeout(500000);
+			timeout(5000000);
 		
 			if((runTimer==1)&&(restartTimer==0)) {
 			//if(restartTimer==0&&runTimer==1){
