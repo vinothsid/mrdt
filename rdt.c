@@ -19,7 +19,8 @@ int rdpSend(char *fileName){
 	char *toSend; 
 	size_t sizeExtracted; 
 	char *packet;
-	
+	int segmentsToSend;	
+
 	fseek(fp,0,SEEK_END);
 	
 	length=ftell(fp);
@@ -32,6 +33,8 @@ int rdpSend(char *fileName){
 	totalSegments = (length -(length%mss))/mss;
 	totalSegments++;
 	}
+
+	segmentsToSend = totalSegments;	
 	
 	inTransit=0;
 	sequenceNumber = 0;
@@ -41,12 +44,15 @@ int rdpSend(char *fileName){
 	toSend = (char *) malloc((sizeof(char))* mss );
 	packet = (char *) malloc((sizeof(char))* (mss+9) );
 	startTimer();
-	while(totalSegments!=0){
+	while( segmentsToSend !=0){
 		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
 		//if u get arbid end data at the receiver...I will suggest doing it
 		memset(toSend,'\0',mss);
 		sizeExtracted = fread(toSend,1,mss,fp);
-		if(sizeExtracted ==0 ){printf("either not working or finshed\n");break;}
+		if(sizeExtracted ==0 ) {
+			printf("either not working or finshed\n");
+			break;
+		}
 		printf("%d\t",sizeExtracted);
 		printf("%s\t",toSend);
 		//commenting following lines //don't understand why?!
@@ -83,13 +89,13 @@ int rdpSend(char *fileName){
 		}
 		printf("\nfrom the rdpSend\t");
 		printInTransitWindowInfo();	
-		totalSegments--;
+		segmentsToSend--;
 		sleep(1);
 	}
 
 	fclose(fp);
-	//return 1;
-	while(1) {}
+	return 1;
+//	while(1) {}
 
 }
 
@@ -738,7 +744,7 @@ int minAcked(struct server* receiver) {
 
 recvThread() {
     HP=-1;
-    int counter=0;
+    //int counter=0;
     while(1) {
     	headIncrement=0;
     	char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
@@ -761,17 +767,18 @@ recvThread() {
 		
 		printf(" 1st if\n");
     	}
-    	else if(t.seqNo==(receiver+recvIndex)->highSeqAcked) {
+    	else if(t.seqNo== (receiver+recvIndex)->highSeqAcked) {
 		printf(" 2nd if\n");
         	//duplicate ack
         	(window+start)->Ack[recvIndex]++;
         	headIncrement=0;
-		headIncrement=t.seqNo;
+		//headIncrement=t.seqNo;
 		//while(1) {}
         	//put fast retransmit conditions and code here
         	if ((window+start)->Ack[recvIndex]>=3) {
             		int y;
             		y=(start+1)%winSize;
+			printf("3 Duplicate ack Received.Trigger fast retrans for seqNo: %d ", (window+y)->seqNo );
             		udpSend(y,recvIndex);
 			(window+start)->Ack[recvIndex]=0;
 
@@ -801,10 +808,6 @@ recvThread() {
    	HU=minAcked(receiver);
    	HU_M=(HU+1)%winSize;
    	if ((HU_M!=-1)&&((HU_M!=head)||(headIncrement==1))) {
-       		head=HU_M;
-		resetTimer();
-       		//inTransit=inTransit-((window+head)->seqNo -HP);
-       		inTransit=inTransit-((HU-HP));
 		//code to set seqNo's to zero
 		int n=((HP+1) % winSize);
 		while((window+n)->seqNo != HU) {
@@ -819,12 +822,16 @@ recvThread() {
 		}
 		//once outsied the loop
 		int i=0;
-                        if (n != -1) {
-                                while(i < numServers) {
-                                        (window+n)->Ack[i]=0;
-                                        i++;
-                                }
+                if (n != -1) {
+                        while(i < numServers) {
+                                (window+n)->Ack[i]=0;
+                                i++;
                         }
+                }
+       		head=HU_M;
+		resetTimer();
+       		//inTransit=inTransit-((window+head)->seqNo -HP);
+       		inTransit=inTransit-((HU-HP));
 		//need to change below line //not correct
 		//HP=(receiver+recvIndex)->highSeqAcked;
 		HP=HU; //this maybe the correct line
@@ -835,7 +842,8 @@ recvThread() {
 		//resetTimer();
 		//below is the place where timer should end
 		//nead to replace 20 with the initial value of totalSegments
-		if (HP==20) {
+		if (HP==totalSegments - 1) { //Since seqNo starts from 0
+			printf("All segments sent and acked.Stopping the timer.");
 			endTimer();
 			exit(1);
 		}
