@@ -25,7 +25,7 @@ int rdpSend(char *fileName){
 	fseek(fp,0,SEEK_END);
 	
 	length=ftell(fp);
-	printf("file size in int is %d",length);
+	printf("File size is %d",length);
 	rewind(fp);
 	
 	if(length%mss==0){
@@ -54,8 +54,8 @@ int rdpSend(char *fileName){
 			printf("either not working or finshed\n");
 			break;
 		}
-		printf("%d\t",sizeExtracted);
-		printf("%s\t",toSend);
+		//printf("%d\t",sizeExtracted);
+		//printf("%s\t",toSend);
 		//commenting following lines //don't understand why?!
 		//if(sequenceNumber!=0){
 		//	sequenceNumber++;
@@ -68,7 +68,7 @@ int rdpSend(char *fileName){
 		tail= (tail+1) % winSize;
 		memcpy((window+tail)->data,packet,mss+9);
 		//printf("\npacket is %s\n",packet+8);
-		printf("\ndata is %s\n",((window+tail)->data)+8);
+		//printf("\ndata is %s\n",((window+tail)->data)+8);
 		/*if(tail==0){
 			
 			(window+tail)->seqNo=(window+winSize-1)->seqNo + 1;
@@ -93,9 +93,9 @@ int rdpSend(char *fileName){
 		sequenceNumber++;
 		if (inTransit==1) {
 			resetTimer(); //timer has to be restarted...has to be done
-			printf("Timer Started\n");
+			printf("rdpSend() : Timer Started\n");
 		}
-		printf("\nfrom the rdpSend\t");
+		printf("\n");
 		printInTransitWindowInfo();	
 		segmentsToSend--;
 		usleep(10000);
@@ -135,7 +135,7 @@ int getRecvIndex (struct server s) {
 		
 	    }
 	}
-	printf("\nNo match in the ip array\n");
+	printf("\n getRecvIndex() : No match in the ip array\n");
 	return -1;
 }
 
@@ -205,8 +205,8 @@ int printWindowInfo() {
 
 int printInTransitWindowInfo() {
         int i;
-        printf("Total Window Size : %d\n",winSize);
-        printf("Maximum Segment Size : %d\n",mss);
+        //printf("Total Window Size : %d\n",winSize);
+        //printf("Maximum Segment Size : %d\n",mss);
         printf("In Transit window size : %d\n",inTransit);
         for (i=head;i<=tail;i++ ) {
                 printf(" %d -> ",(window+i)->seqNo);
@@ -281,7 +281,7 @@ void timeout(int ticks)
 
 void startTimer(){
 	runTimer=1;
-	printf("Started TIMER again\n");
+	//printf("Started TIMER again\n");
 	resetTimer();	
 
 }
@@ -302,7 +302,7 @@ void *timer()
 			restartTimer=0;
 			//printf("Timer Started for %d consecutive time\n",n);
 			n++;
-			timeout(50000);
+			timeout(5000000);
 		
 			if((runTimer==1)&&(restartTimer==0)) {
 			//if(restartTimer==0&&runTimer==1){
@@ -514,7 +514,7 @@ int framePacket(char *data,uint32_t seqNo,char *pkt,int flag) {
 
 		uint16_t checkSum= computeChkSum(data);
 
-printf("checkSum in framePacket : %d \n",checkSum);
+//printf("checkSum in framePacket : %d \n",checkSum);
 
 		packi16(pkt+4,checkSum);
 		dataFlag = 21845; //0101010101010101
@@ -552,7 +552,7 @@ int checkChkSum(u_short *buf,u_short checksum)
         int count;
  	count = ceil(strlen(buf)/2.0 ) ;
 
-	printf(" Insid checkchkSum : %d\n",computeChkSum(buf));
+	//printf(" Insid checkchkSum : %d\n",computeChkSum(buf));
         while (count--)
         {
                 sum += *buf++;
@@ -586,7 +586,7 @@ u_short computeChkSum(u_short *buf)
 {
         int count;
 	count = ceil(strlen(buf)/2.0 ) ;
-        printf("count : %d\n",count);
+        //printf("count : %d\n",count);
         u_long sum = 0;
 
         while (count--)
@@ -624,22 +624,22 @@ int rdtRecv( int port  , char *fileName) {
 	curWindow = window+nE;
 	while(1) {
 		sender = udpRcv(temp,port,mss+9);
-		printf("Received : %s\n",temp+8);
+		//printf("Received : %s\n",temp+8);
 		strcpy(receiver->ip,sender.ip);
 		receiver->port = MYPORT; //sender.port;
 		struct token t;
 		t = tokenize(temp);
 	
-		printf("Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);	
+		printf("\nrdtRecv() : Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);	
 		if ( (curWindow->seqNo - winSize ) <= t.seqNo && t.seqNo < curWindow->seqNo) {
 			framePacket("",lastInSequenceNo,ackPkt,1);
 			udpServerSend(ackPkt);
-			printf("Ack for seqNo : %d\n",lastInSequenceNo);
+			printf("rdtRecv() : Ack for seqNo : %d\n",lastInSequenceNo);
 		} else if (t.seqNo == curWindow->seqNo )	{
 //			printf("11111111\n");
 			//if ( checkChkSum(temp+8,t.chkSum) ) {
 			if (lossFunction()) {
-				printf("\nProbabilistic drop: packet seqNo: %d\n",t.seqNo);
+				printf("Probabilistic drop: packet seqNo: %d\n",t.seqNo);
 				continue;
 			}
 			if(1) {
@@ -647,15 +647,16 @@ int rdtRecv( int port  , char *fileName) {
 				memcpy(curWindow->data,temp+8,mss );
 				curWindow->seqNo = t.seqNo;
 				
-				printf("curWindow->data : %s\n",curWindow->data);
+				//printf("curWindow->data : %s\n",curWindow->data);
 				while(*(curWindow->data)!='\0') {
 				//while(i < 2) {
 					//i++;
 					//printf("while\n");
-					printf("inside while : %s\n",(curWindow->data));
+				//	printf("inside while : %s\n",(curWindow->data));
 					fp = fopen(fileName,"a");
 					fputs(curWindow->data,fp);
 					fclose(fp);
+					printf("rdtRecv() : Written segment %d to the file\n",curWindow->seqNo);
 					x = (x+1)%winSize;
 					memset(curWindow->data,0,mss);
 					lastInSequenceNo = curWindow->seqNo;
@@ -663,12 +664,11 @@ int rdtRecv( int port  , char *fileName) {
 
 				}
 				nE = x;
-				printf("Next expected : %d\n",nE);	
-				printf("Acked LastSequence Num : %d\n",lastInSequenceNo);
+				//printf("Next expected : %d\n",nE);	
+				printf("Acked LastInSequence Num : %d\n",lastInSequenceNo);
 				curWindow->seqNo = lastInSequenceNo + 1;
 				framePacket("",lastInSequenceNo,ackPkt,1);
 				udpServerSend(ackPkt);
-				
 							
 						
 			} else {
@@ -680,6 +680,9 @@ int rdtRecv( int port  , char *fileName) {
 			index = t.seqNo%winSize	;
 			memcpy((window + index)->data,temp+8,mss);
 			(window + index)->seqNo = t.seqNo;
+			framePacket("",lastInSequenceNo,ackPkt,1);
+			udpServerSend(ackPkt);
+			printf("rdtRecv() : Duplicate ack sent for seqNo: %d\n",lastInSequenceNo);
 		}
 
 	}
@@ -731,7 +734,7 @@ int udpServerSend (char *pkt)
     freeaddrinfo(servinfo);
 
     //if (debug == 1 || log ==1) {
-        printf("sent %d bytes to %s\n", numbytes,(receiver+indexRcvr)->ip);
+        //printf("sent %d bytes to %s\n", numbytes,(receiver+indexRcvr)->ip);
     //}
     close(sockfd);
     return 1;
@@ -739,7 +742,7 @@ int udpServerSend (char *pkt)
 }
 int minAcked(struct server* receiver) {
     int min=receiver->highSeqAcked;
-    printf("(receiver+x)->highSeqAcked: %d", receiver->highSeqAcked);
+//    printf("minAcked():(receiver+x)->highSeqAcked: %d", receiver->highSeqAcked);
     int x=0;
     while (x<numServers) {
         if ((receiver+x)->highSeqAcked < min) {
@@ -760,12 +763,12 @@ recvThread() {
     	int recvIndex;
     	//store previous head
     	recvIndex=getRecvIndex(udpRcv(rcvBuf,MYPORT,sizeofack));
-	printf("Receiver index : %d\n",recvIndex);
+//	printf("Receiver index : %d\n",recvIndex);
     	//get the seqNo of the ack
     	struct token t;
     	t=tokenize(rcvBuf);
 
-	printf("recvThread : Received ack for seqNo : %d\n",t.seqNo);
+	printf("\nrecvThread() : Received ack for seqNo : %d  from receiver index: %d\n",t.seqNo,recvIndex);
     	//t.seqNo now contains the sequence number of the Ack received
     	int start=((receiver+recvIndex)->highSeqAcked)%winSize;
 
@@ -774,10 +777,10 @@ recvThread() {
         	//ack is less than the already highest acked
         	headIncrement=0;
 		
-		printf(" 1st if\n");
+		printf("recvThread(): Received ack for %d already \n",t.seqNo);
     	}
     	else if(t.seqNo== (receiver+recvIndex)->highSeqAcked) {
-		printf(" 2nd if\n");
+		printf("recvThread() : Duplicate ack for %d received from receiver index %d . Receiver->highSegAcked : %d \n",t.seqNo,recvIndex,(receiver+recvIndex)->highSeqAcked) ;
         	//duplicate ack
                	/*(window+start)->Ack[recvIndex]++;
         	headIncrement=0;
@@ -798,10 +801,9 @@ recvThread() {
 		if (fastRetransmitCounter[recvIndex]>=3) {
                         int y;
                         y=(start+1)%winSize;
-                        printf("3 Duplicate ack Received.Trigger fast retrans for seqNo: %d ", (window+y)->seqNo );
+                        printf("recvThread : 3 Duplicate ack Received from receiver : %d.Trigger fast retrans for seqNo: %d \n ",recvIndex, (window+y)->seqNo );
                         udpSend(y,recvIndex);
                         fastRetransmitCounter[recvIndex]=0;
-
                 }
 
     	}
@@ -809,7 +811,7 @@ recvThread() {
         	int x;
         	//expected ack received
         	x=(start+1) % winSize;
-		printf("Value of x : %d\n",x);
+		//printf("recvThread() : Received ack for seqNo : %d receiver : %d\n",t.seqNo,x);
         	while((window+x)->seqNo!=t.seqNo){
             		(window+x)->Ack[recvIndex]=1;
             		x=(x+1)%winSize;
@@ -819,7 +821,7 @@ recvThread() {
         	(receiver+recvIndex)->highSeqAcked=(window+x)->seqNo;
 
  //       	headIncrement=1;
-		printf("Received ack : %d\n",t.seqNo);
+		printf("Received expected ack : %d\n",t.seqNo);
 		//printInTransitWindow();
     	}
    	//head update procedure
@@ -886,7 +888,7 @@ int lossFunction() {
 	srand(time(NULL));
 	x=rand() % 1024;
 	x=x/1024.0;
-	printf("\nlossProbability number: %f\n",x);
+	printf("lossProbability number: %f\n",x);
 	if (x < lossProbability) {
 		return 1;
 	} else {
