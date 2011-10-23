@@ -31,6 +31,7 @@ int headIncrement;
 float lossProbability;
 int restartTimer;
 int runTimer;
+int startNewWindow;
 int segmentNumber;
 int totalSegments;
 uint32_t sequenceNumber;

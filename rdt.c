@@ -91,11 +91,12 @@ int rdpSend(char *fileName){
                 inTransit++;//incrementing only after sending packet
                 pthread_mutex_unlock(&mutex1);
 		sequenceNumber++;
-		if (inTransit==1) {
+		printf("\n");
+		if (inTransit==1 && startNewWindow ==1 ) {
 			resetTimer(); //timer has to be restarted...has to be done
+			startNewWindow = 0;
 			printf("rdpSend() : Timer Started\n");
 		}
-		printf("\n");
 		printInTransitWindowInfo();	
 		segmentsToSend--;
 		usleep(10000);
@@ -208,6 +209,7 @@ int printInTransitWindowInfo() {
         //printf("Total Window Size : %d\n",winSize);
         //printf("Maximum Segment Size : %d\n",mss);
         printf("In Transit window size : %d\n",inTransit);
+	printf("=================== In Transit Window ======================\n");
         for (i=head;i<=tail;i++ ) {
                 printf(" %d -> ",(window+i)->seqNo);
                 if( *((window + i )->data+8) == '\0' )
@@ -863,13 +865,15 @@ recvThread() {
        		memset(fastRetransmitCounter,0,numServers*sizeof(int));
 		//inTransit=inTransit-((window+head)->seqNo -HP);
        		inTransit=inTransit-((HU-HP));
+		if(inTransit==0)
+			startNewWindow=1;
 		//need to change below line //not correct
 		//HP=(receiver+recvIndex)->highSeqAcked;
 		HP=HU; //this maybe the correct line
 		//if any problem try de-initializing Ack of winElement here
        		//put start_timer() code here
-		printf("\nrecvThread: moving head : %d\n",HU_M);
-		printInTransitWindowInfo();
+		printf("recvThread: moving head : %d\n",HU_M);
+		//printInTransitWindowInfo();
 		//resetTimer();
 		//below is the place where timer should end
 		//nead to replace 20 with the initial value of totalSegments
