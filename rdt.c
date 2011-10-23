@@ -650,7 +650,7 @@ int rdtRecv( int port  , char *fileName) {
 				curWindow->seqNo = t.seqNo;
 				
 				//printf("curWindow->data : %s\n",curWindow->data);
-				while(*(curWindow->data)!='\0') {
+				while(*(curWindow->data)!='\0'){
 				//while(i < 2) {
 					//i++;
 					//printf("while\n");
@@ -665,6 +665,7 @@ int rdtRecv( int port  , char *fileName) {
 					curWindow = window+x;
 
 				}
+
 				nE = x;
 				//printf("Next expected : %d\n",nE);	
 				printf("Acked LastInSequence Num : %d\n",lastInSequenceNo);
