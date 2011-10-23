@@ -75,6 +75,11 @@ int rdpSend(char *fileName){
 			(window+tail)->seqNo=((window+((tail-1)%winSize))->seqNo )+1;
 			}*/
 		(window+tail)->seqNo = sequenceNumber;
+		int i=0;
+                while(i < numServers) {
+                       (window+tail)->Ack[i]=0;
+                       i++;
+                }
 		if(udpSendAll(tail)!=1)
 			printf("Some error while sending to all\n");		
 
@@ -90,7 +95,7 @@ int rdpSend(char *fileName){
 		printf("\nfrom the rdpSend\t");
 		printInTransitWindowInfo();	
 		segmentsToSend--;
-		sleep(1);
+		usleep(10000);
 	}
 
 	fclose(fp);
@@ -242,8 +247,8 @@ int timeoutHandler(){
 	int i;
 	int check;
 	for(i=0;i<numServers;i++){
-		printf("window+head -> Ack[%d] : %d\n",i,(window+head)->Ack[i]);
-		printf("window+head -> seqNo : %d \n", (window+head)->seqNo);
+		//printf("window+head -> Ack[%d] : %d\n",i,(window+head)->Ack[i]);
+		//printf("window+head -> seqNo : %d \n", (window+head)->seqNo);
 		if(((window+head)->Ack[i]==0) && ((window+head)->seqNo==HP+1)){
 		// send to the i th receiver only not to all
 				
@@ -294,7 +299,7 @@ void *timer()
 			restartTimer=0;
 			//printf("Timer Started for %d consecutive time\n",n);
 			n++;
-			timeout(500000);
+			timeout(50000);
 		
 			if((runTimer==1)&&(restartTimer==0)) {
 			//if(restartTimer==0&&runTimer==1){
@@ -506,6 +511,8 @@ int framePacket(char *data,uint32_t seqNo,char *pkt,int flag) {
 
 		uint16_t checkSum= computeChkSum(data);
 
+printf("checkSum in framePacket : %d \n",checkSum);
+
 		packi16(pkt+4,checkSum);
 		dataFlag = 21845; //0101010101010101
 	} else {
@@ -541,6 +548,8 @@ int checkChkSum(u_short *buf,u_short checksum)
 
         int count;
  	count = ceil(strlen(buf)/2.0 ) ;
+
+	printf(" Insid checkchkSum : %d\n",computeChkSum(buf));
         while (count--)
         {
                 sum += *buf++;
@@ -574,8 +583,8 @@ u_short computeChkSum(u_short *buf)
 {
         int count;
 	count = ceil(strlen(buf)/2.0 ) ;
-        printf("count : %d",count);
-        register u_long sum = 0;
+        printf("count : %d\n",count);
+        u_long sum = 0;
 
         while (count--)
         {
@@ -808,7 +817,7 @@ recvThread() {
 	//HU_seq=(window+(HU%winSize))->seqNo;
    	if ((HU_M!=-1)&&(HU!=HP)) {
 		//code to set seqNo's to zero
-		int n=((HP+1) % winSize);
+		/*int n=((HP+1) % winSize);
 		while((window+n)->seqNo != HU) {
 			int i=0;
 			if (n != -1) {	
@@ -824,11 +833,12 @@ recvThread() {
                 if (n != -1) {
                         while(i < numServers) {
                                 (window+n)->Ack[i]=0;
-                                i++;
-				printf("(window+n)->Ack[%d] : %d\n",i,(window+n)->Ack[i]);
-                        }
+                                //i++;
+				printf("\n(window+n)->Ack[%d] : %d\n",i,(window+n)->Ack[i]);
+                        	i++;
+			}
                 }
-
+*/
 		
 			
        		head=HU_M;

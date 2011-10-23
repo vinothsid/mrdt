@@ -1,7 +1,7 @@
 #include "rdt.h"
 
 int main(char *argv[],int argc) {
-	lossProbability=0.5;
+	lossProbability=0.05;
 	int port=5000;
 	char *fileName="test";
 	int windowSize=10;
