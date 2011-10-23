@@ -210,10 +210,10 @@ int printInTransitWindowInfo() {
         printf("In Transit window size : %d\n",inTransit);
         for (i=head;i<=tail;i++ ) {
                 printf(" %d -> ",(window+i)->seqNo);
-                if( *((window + i )->data) == '\0' )
+                if( *((window + i )->data+8) == '\0' )
                         printf("0;");
                 else
-                        printf("1");  // CAN WE PRINT DATA ?? can it happen that the window ele that we are printing here might be wiped off b4 ?
+                        printf("1;");  // CAN WE PRINT DATA ?? can it happen that the window ele that we are printing here might be wiped off b4 ?
         }
         printf("\n");
         return 1;
