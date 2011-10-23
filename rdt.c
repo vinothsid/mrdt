@@ -1,5 +1,6 @@
 #include "rdt.h"
- 
+
+pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER; 
 int ceil(float x) {
     
 }
@@ -86,7 +87,9 @@ int rdpSend(char *fileName){
 		//sleep(1); 
 		// PART pending......
 		// Will resume after udpSendAll
-		inTransit++;//incrementing only after sending packet
+		pthread_mutex_lock(&mutex1);
+                inTransit++;//incrementing only after sending packet
+                pthread_mutex_unlock(&mutex1);
 		sequenceNumber++;
 		if (inTransit==1) {
 			resetTimer(); //timer has to be restarted...has to be done
@@ -750,7 +753,7 @@ int minAcked(struct server* receiver) {
 recvThread() {
     HP=-1;
     //int counter=0;
-    
+    int *fastRetransmitCounter=(int*)malloc(numServers*sizeof(int));
     while(1) {
     	headIncrement=0;
     	char *rcvBuf=(char *)malloc(sizeofack*sizeof(char));
@@ -776,7 +779,7 @@ recvThread() {
     	else if(t.seqNo== (receiver+recvIndex)->highSeqAcked) {
 		printf(" 2nd if\n");
         	//duplicate ack
-        	(window+start)->Ack[recvIndex]++;
+               	/*(window+start)->Ack[recvIndex]++;
         	headIncrement=0;
 		//headIncrement=t.seqNo;
 		//while(1) {}
@@ -788,7 +791,19 @@ recvThread() {
             		udpSend(y,recvIndex);
 			(window+start)->Ack[recvIndex]=0;
 
-        	}
+        	}*/
+
+		//new logic
+		fastRetransmitCounter[recvIndex]++;
+		if (fastRetransmitCounter[recvIndex]>=3) {
+                        int y;
+                        y=(start+1)%winSize;
+                        printf("3 Duplicate ack Received.Trigger fast retrans for seqNo: %d ", (window+y)->seqNo );
+                        udpSend(y,recvIndex);
+                        fastRetransmitCounter[recvIndex]=0;
+
+                }
+
     	}
     	else {
         	int x;
@@ -843,7 +858,8 @@ recvThread() {
 			
        		head=HU_M;
 		resetTimer();
-       		//inTransit=inTransit-((window+head)->seqNo -HP);
+       		memset(fastRetransmitCounter,0,numServers*sizeof(int));
+		//inTransit=inTransit-((window+head)->seqNo -HP);
        		inTransit=inTransit-((HU-HP));
 		//need to change below line //not correct
 		//HP=(receiver+recvIndex)->highSeqAcked;
