@@ -1,11 +1,6 @@
 #include "rdt.h"
 
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER; 
-int ceil(float x) {
-    
-}
-
-
 
 
 /******************************RDP SEND**************************************/
@@ -21,7 +16,8 @@ int rdpSend(char *fileName){
 	size_t sizeExtracted; 
 	char *packet;
 	int segmentsToSend;	
-
+	char *c,*s;
+	c="\0";
 	fseek(fp,0,SEEK_END);
 	
 	length=ftell(fp);
@@ -41,28 +37,27 @@ int rdpSend(char *fileName){
 	sequenceNumber = 0;
 //Vinoth why below stat is needed
 //	(window+winSize-1)->seqNo = 0;
-
 	toSend = (char *) malloc((sizeof(char))* mss );
-	packet = (char *) malloc((sizeof(char))* (mss+9) );
+	packet = (char *) malloc((sizeof(char))* (mss+8) );
 	startTimer();
 	while( segmentsToSend !=0){
 		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
 		//if u get arbid end data at the receiver...I will suggest doing it
 		memset(toSend,'\0',mss);
 		sizeExtracted = fread(toSend,1,mss,fp);
+		s=toSend+mss;
+		memcpy(s,c,1);
+		printf("\nThe string from toSend is %s\n",toSend);
+		printf("\nThe checkSum from toSEND is %d\n",computeChkSum(toSend));
+		
 		if(sizeExtracted ==0 ) {
 			printf("either not working or finshed\n");
 			break;
 		}
-		//printf("%d\t",sizeExtracted);
-		//printf("%s\t",toSend);
-		//commenting following lines //don't understand why?!
-		//if(sequenceNumber!=0){
-		//	sequenceNumber++;
-		//}
-		//inTransit++;	
-    		memset(packet,'\0',mss+9);
+
+    		memset(packet,'\0',mss+8);
 		framePacket(toSend,sequenceNumber,packet,0);
+	
 		while(inTransit==winSize){ }
 
 		tail= (tail+1) % winSize;
@@ -619,6 +614,8 @@ int rdtRecv( int port  , char *fileName) {
 	struct server sender;
 //	FILE *fp = fopen(fileName,"wa");
 	char *temp = (char *)malloc(sizeof(char)*mss + 9);
+	char *strq = (char *)malloc(sizeof(char)*(mss + 9));
+	
 	FILE *fp = fopen(fileName,"w");
 	fclose(fp);
 	int i=0;
@@ -631,8 +628,14 @@ int rdtRecv( int port  , char *fileName) {
 		receiver->port = MYPORT; //sender.port;
 		struct token t;
 		t = tokenize(temp);
-	
-		printf("\nrdtRecv() : Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);	
+printf("===========================================================\n");		
+		memcpy(strq,temp+8,strlen(temp+8));
+		printf("\nrdtRecv() : Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);
+		printf("\nThe string from temp is %s\n",temp+8);
+		printf("\nThe checkSum from temp is %d\n",computeChkSum(temp+8));
+		printf("\nThe checkSum from toke is %d\n",t.chkSum);
+		
+		
 		if ( (curWindow->seqNo - winSize ) <= t.seqNo && t.seqNo < curWindow->seqNo) {
 			framePacket("",lastInSequenceNo,ackPkt,1);
 			udpServerSend(ackPkt);
@@ -644,7 +647,7 @@ int rdtRecv( int port  , char *fileName) {
 				printf("Probabilistic drop: packet seqNo: %d\n",t.seqNo);
 				continue;
 			}
-			if(1) {
+			if(computeChkSum(temp+8)==t.chkSum) {
 				x = nE;
 				memcpy(curWindow->data,temp+8,mss );
 				curWindow->seqNo = t.seqNo;
@@ -690,7 +693,7 @@ int rdtRecv( int port  , char *fileName) {
 
 	}
 
-
+printf("===========================================================\n");
 }
 
 int udpServerSend (char *pkt)
