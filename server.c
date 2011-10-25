@@ -25,5 +25,5 @@ int main(int argc,char *argv[]) {
 	initWindow(windowSize,maxSegSize);
 
 	printWindowInfo();
-	rdtRecv(port,fileName);
+	rdtRecv(port,fileName,mss);
 }

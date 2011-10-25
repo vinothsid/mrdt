@@ -10,7 +10,6 @@ int rdpSend(char *fileName){
 	FILE *fp;
 	fp = fopen(fileName,"r");
 	if(fp==NULL){fputs("File error",stderr);exit(1);}
-		
 	long length;
 	char *toSend; 
 	size_t sizeExtracted; 
@@ -32,13 +31,13 @@ int rdpSend(char *fileName){
 	}
 
 	segmentsToSend = totalSegments;	
-	
+	printf("\nTotal to send segments %d\n",totalSegments);
 	inTransit=0;
 	sequenceNumber = 0;
 //Vinoth why below stat is needed
 //	(window+winSize-1)->seqNo = 0;
 	toSend = (char *) malloc((sizeof(char))* mss );
-	packet = (char *) malloc((sizeof(char))* (mss+8) );
+	packet = (char *) malloc((sizeof(char))* (mss+9) );
 	startTimer();
 	while( segmentsToSend !=0){
 		//consider making all bytes of toSend NULL coz for the last segment, overlapping of data may occur
@@ -55,9 +54,9 @@ int rdpSend(char *fileName){
 			break;
 		}
 
-    		memset(packet,'\0',mss+8);
+    		memset(packet,'\0',mss+9);
 		framePacket(toSend,sequenceNumber,packet,0);
-	
+		printf("\nThe string from framepacket is %s\n",packet+8);	
 		while(inTransit==winSize){ }
 
 		tail= (tail+1) % winSize;
@@ -147,7 +146,7 @@ int initWindow(int size,int segSize) {
 		(window + i)->Ack = (int *)malloc(sizeof(int) * numServers);
 		//assert((window + i)->Ack);
 		// data size = mss + 8 bytes of header + 1 for storing \0
-		(window + i)->data = (char *)malloc(sizeof(char) * (mss + 9));  // WHY MSS  '+9'  ????
+		(window + i)->data = (char *)malloc(sizeof(char) * (mss + 8));  // WHY MSS  '+9'  ????
 		//assert((window + i)->data);
 		strcpy((window + i)->data , ""); // WHY START WITH EMPTY DATA ????
 		(window + i)->seqNo = -1;  
@@ -524,8 +523,10 @@ int framePacket(char *data,uint32_t seqNo,char *pkt,int flag) {
 
 	packi16(pkt+6,dataFlag);
 
-
-	memcpy(pkt+8,data,strlen(data) );
+	if(flag==0){
+	memcpy(pkt+8,data,mss);} else {
+	memcpy(pkt+8,data,strlen(data));
+	}
 	
 	return 0;
 }
@@ -603,33 +604,42 @@ u_short computeChkSum(u_short *buf)
 }
 /*************************************************************************************/
 
-int rdtRecv( int port  , char *fileName) {
+int rdtRecv( int port  , char *fileName, int mss) {
 	int nE = 0,x=0,prev=0;
 	int lastInSequenceNo=-1;
 	int index;
+	int in=0;
 	window->seqNo = 0;
 	struct winElement *curWindow;
 	char ackPkt[9];
 	receiver = (struct server*)malloc(sizeof(struct server));
 	struct server sender;
 //	FILE *fp = fopen(fileName,"wa");
-	char *temp = (char *)malloc(sizeof(char)*mss + 9);
+	char *temp = (char *)malloc(sizeof(char)*mss + 8);
 	char *strq = (char *)malloc(sizeof(char)*(mss + 9));
-	
 	FILE *fp = fopen(fileName,"w");
-	fclose(fp);
+	size_t total;
+	//fclose(fp);
 	int i=0;
 	int test=1;
+	char *s,*c;
+	c="\0";
 	curWindow = window+nE;
+	//memset(curWindow->data,EOF,mss );
+	//memset((curWindow+1)->data,EOF,mss );
+
 	while(1) {
-		sender = udpRcv(temp,port,mss+9);
+		sender = udpRcv(temp,port,mss+8);
 		//printf("Received : %s\n",temp+8);
 		strcpy(receiver->ip,sender.ip);
 		receiver->port = MYPORT; //sender.port;
 		struct token t;
 		t = tokenize(temp);
 printf("===========================================================\n");		
-		memcpy(strq,temp+8,strlen(temp+8));
+		memcpy(strq,temp+8,strlen(temp+9));
+		s=temp;
+		s=s+8+mss;
+		memcpy(s,c,1);
 		printf("\nrdtRecv() : Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);
 		printf("\nThe string from temp is %s\n",temp+8);
 		printf("\nThe checkSum from temp is %d\n",computeChkSum(temp+8));
@@ -647,7 +657,8 @@ printf("===========================================================\n");
 				printf("Probabilistic drop: packet seqNo: %d\n",t.seqNo);
 				continue;
 			}
-			if(computeChkSum(temp+8)==t.chkSum) {
+			//if(computeChkSum(temp+8)==t.chkSum) {
+			if(1){			
 				x = nE;
 				memcpy(curWindow->data,temp+8,mss );
 				curWindow->seqNo = t.seqNo;
@@ -659,8 +670,9 @@ printf("===========================================================\n");
 					//printf("while\n");
 				//	printf("inside while : %s\n",(curWindow->data));
 					fp = fopen(fileName,"a");
-					fputs(curWindow->data,fp);
-					fclose(fp);
+					total =fwrite(curWindow->data,1,mss,fp);
+						//printf("\nThe string from fwrite is %s\n",temp+8);
+					fclose(fp); 
 					printf("rdtRecv() : Written segment %d to the file\n",curWindow->seqNo);
 					x = (x+1)%winSize;
 					memset(curWindow->data,0,mss);

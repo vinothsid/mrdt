@@ -23,7 +23,7 @@
 #define u_long uint32_t
 #define MYPORT 4950
 #define sizeofack 32
-
+int passedMSS;
 int HU;
 int HU_M;
 int HP;
@@ -79,7 +79,7 @@ int printReceiverList();
 void endTimer();
 void resetTimer();
 
-int rdtRecv(int port,char *fileName);
+int rdtRecv(int port,char *fileName,int mss);
 //some auxilary functions
 int get_in_port(struct sockaddr *sa);
 void *get_in_addr(struct sockaddr *sa);
