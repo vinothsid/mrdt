@@ -6,6 +6,7 @@ int main(int argc,char *argv[]) {
 		printf("usage: ./server [filename] [winSize] [mss] [loss probability]\n");
 		exit(1);
 	}
+	sizeExtracted=0;
 	printf("Server starting ....\n");
 	float loss;
 	int size;

@@ -23,6 +23,8 @@
 #define u_long uint32_t
 #define MYPORT 4950
 #define sizeofack 32
+ int numbytesrcv;
+size_t sizeExtracted;
 int passedMSS;
 int HU;
 int HU_M;

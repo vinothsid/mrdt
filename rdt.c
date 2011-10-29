@@ -12,9 +12,10 @@ int rdpSend(char *fileName){
 	if(fp==NULL){fputs("File error",stderr);exit(1);}
 	long length;
 	char *toSend; 
-	size_t sizeExtracted; 
+	 
 	char *packet;
-	int segmentsToSend;	
+	int segmentsToSend;
+	int last;	
 	char *c,*s;
 	c="\0";
 	fseek(fp,0,SEEK_END);
@@ -44,6 +45,7 @@ int rdpSend(char *fileName){
 		//if u get arbid end data at the receiver...I will suggest doing it
 		memset(toSend,'\0',mss);
 		sizeExtracted = fread(toSend,1,mss,fp);
+		printf("\nthe segment size is %d\n",sizeExtracted);
 		s=toSend+mss;
 		memcpy(s,c,1);
 		//printf("\nThe string from toSend is %s\n",toSend);
@@ -53,7 +55,7 @@ int rdpSend(char *fileName){
 			printf("either not working or finshed\n");
 			break;
 		}
-
+		
     		memset(packet,'\0',mss+9);
 		framePacket(toSend,sequenceNumber,packet,0);
 		//printf("\nThe string from framepacket is %s\n",packet+8);	
@@ -361,7 +363,7 @@ int udpSend(int indexWindow,int indexRcvr)
         return 2;
     }
 
-    if ((numbytes = sendto(sockfd, (window+indexWindow)->data, mss+9, 0,
+    if ((numbytes = sendto(sockfd, (window+indexWindow)->data, sizeExtracted+8, 0,
              p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sendto");
         exit(1);
@@ -398,7 +400,7 @@ struct server udpRcv(char* rcvBuf,int port,int bufSize)
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
-    int numbytes;
+  
     struct sockaddr_storage their_addr;
     char buf[mss];
     socklen_t addr_len;
@@ -441,7 +443,7 @@ struct server udpRcv(char* rcvBuf,int port,int bufSize)
     //printf("listener: waiting to recvfrom...\n");
 
     addr_len = sizeof their_addr;
-    	if ((numbytes = recvfrom(sockfd, buf, mss+8 , 0,
+    	if ((numbytesrcv = recvfrom(sockfd, buf, mss+8 , 0,
         	(struct sockaddr *)&their_addr, &addr_len)) == -1) {
         	perror("recvfrom");
         	//exit(1);
@@ -455,7 +457,7 @@ struct server udpRcv(char* rcvBuf,int port,int bufSize)
 //    	printf("listener: got packet from %s port %d\n",
 //        	inet_ntop(their_addr.ss_family,get_in_addr((struct sockaddr *)&their_addr),s, sizeof s),rcvFromPort);
  //   	printf("listener: packet is %d bytes long\n", numbytes);
-    	buf[numbytes] = '\0';
+    	buf[numbytesrcv] = '\0';
  //   	printf("listener: packet contains \"%s\"\n", buf+8);
 	memcpy(rcvBuf,buf,bufSize);
 
@@ -524,7 +526,7 @@ int framePacket(char *data,uint32_t seqNo,char *pkt,int flag) {
 	packi16(pkt+6,dataFlag);
 
 	if(flag==0){
-	memcpy(pkt+8,data,mss);} else {
+	memcpy(pkt+8,data,sizeExtracted);} else {
 	memcpy(pkt+8,data,strlen(data));
 	}
 	
@@ -636,10 +638,10 @@ int rdtRecv( int port  , char *fileName, int mss) {
 		struct token t;
 		t = tokenize(temp);
 printf("===========================================================\n");		
-		memcpy(strq,temp+8,strlen(temp+9));
-		s=temp;
-		s=s+8+mss;
-		memcpy(s,c,1);
+		//memcpy(strq,temp+8,strlen(temp+9));
+		//s=temp;
+		//s=s+8+mss;
+		//memcpy(s,c,1);
 		//printf("\nrdtRecv() : Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);
 		//printf("\nThe string from temp is %s\n",temp+8);
 		//printf("\nThe checkSum from temp is %d\n",computeChkSum(temp+8));
@@ -660,7 +662,7 @@ printf("===========================================================\n");
 			//if(computeChkSum(temp+8)==t.chkSum) {
 			if(1){			
 				x = nE;
-				memcpy(curWindow->data,temp+8,mss );
+				memcpy(curWindow->data,temp+8,numbytesrcv-8);
 				curWindow->seqNo = t.seqNo;
 				
 				//printf("curWindow->data : %s\n",curWindow->data);
@@ -670,7 +672,7 @@ printf("===========================================================\n");
 					//printf("while\n");
 				//	printf("inside while : %s\n",(curWindow->data));
 					fp = fopen(fileName,"a");
-					total =fwrite(curWindow->data,1,mss,fp);
+					total =fwrite(curWindow->data,1,numbytesrcv-8,fp);
 						//printf("\nThe string from fwrite is %s\n",temp+8);
 					fclose(fp); 
 					printf("rdtRecv() : Written segment %d to the file\n",curWindow->seqNo);
@@ -711,11 +713,11 @@ printf("===========================================================\n");
 int udpServerSend (char *pkt)
 {
     //assert(*(window+indexWindow)->data!='\0');
-
+ int numbytes;
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
-    int numbytes;
+   
     int indexRcvr = 0;
 
     memset(&hints, 0, sizeof hints);
@@ -905,7 +907,7 @@ recvThread() {
 
 int lossFunction() {
 	float x;
-	srand(time(NULL));
+	
 	x=rand() % 1024;
 	x=x/1024.0;
 	printf("lossProbability number: %f\n",x);
