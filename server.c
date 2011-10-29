@@ -7,10 +7,11 @@ int main(int argc,char *argv[]) {
 		exit(1);
 	}
 	printf("Server starting ....\n");
-	int loss;
+	float loss;
 	int size;
 	int mss;
-	loss= atoi(argv[4]);
+	loss= atof(argv[4]);
+	printf("Loss : %f\n",loss);
 	mss= atoi(argv[3]);
 	size= atoi(argv[2]);
 	
