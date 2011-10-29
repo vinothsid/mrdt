@@ -46,8 +46,8 @@ int rdpSend(char *fileName){
 		sizeExtracted = fread(toSend,1,mss,fp);
 		s=toSend+mss;
 		memcpy(s,c,1);
-		printf("\nThe string from toSend is %s\n",toSend);
-		printf("\nThe checkSum from toSEND is %d\n",computeChkSum(toSend));
+		//printf("\nThe string from toSend is %s\n",toSend);
+		//printf("\nThe checkSum from toSEND is %d\n",computeChkSum(toSend));
 		
 		if(sizeExtracted ==0 ) {
 			printf("either not working or finshed\n");
@@ -56,7 +56,7 @@ int rdpSend(char *fileName){
 
     		memset(packet,'\0',mss+9);
 		framePacket(toSend,sequenceNumber,packet,0);
-		printf("\nThe string from framepacket is %s\n",packet+8);	
+		//printf("\nThe string from framepacket is %s\n",packet+8);	
 		while(inTransit==winSize){ }
 
 		tail= (tail+1) % winSize;
@@ -93,7 +93,7 @@ int rdpSend(char *fileName){
 		}
 		printInTransitWindowInfo();	
 		segmentsToSend--;
-		usleep(10000);
+		usleep(100);
 	}
 
 	fclose(fp);
@@ -298,7 +298,7 @@ void *timer()
 			restartTimer=0;
 			//printf("Timer Started for %d consecutive time\n",n);
 			n++;
-			timeout(5000000);
+			timeout(50000);
 		
 			if((runTimer==1)&&(restartTimer==0)) {
 			//if(restartTimer==0&&runTimer==1){
@@ -640,10 +640,10 @@ printf("===========================================================\n");
 		s=temp;
 		s=s+8+mss;
 		memcpy(s,c,1);
-		printf("\nrdtRecv() : Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);
-		printf("\nThe string from temp is %s\n",temp+8);
-		printf("\nThe checkSum from temp is %d\n",computeChkSum(temp+8));
-		printf("\nThe checkSum from toke is %d\n",t.chkSum);
+		//printf("\nrdtRecv() : Received SeqNo : %d , expectedSeqNo : %d\n",t.seqNo, curWindow->seqNo);
+		//printf("\nThe string from temp is %s\n",temp+8);
+		//printf("\nThe checkSum from temp is %d\n",computeChkSum(temp+8));
+		//printf("\nThe checkSum from toke is %d\n",t.chkSum);
 		
 		
 		if ( (curWindow->seqNo - winSize ) <= t.seqNo && t.seqNo < curWindow->seqNo) {
